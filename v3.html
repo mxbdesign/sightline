@@ -176,6 +176,7 @@
 // ─── EDITOR LOGIC ─────────────────────────────────────────
 let editMode = false;
 let draggedBB = null;
+let draggedNPC = null;
 let dragOffsetX = 0, dragOffsetY = 0;
 
 document.getElementById('edit-mode-toggle').addEventListener('change', (e) => {
@@ -200,24 +201,49 @@ document.addEventListener('mousedown', e => {
     const rect = bb.getBoundingClientRect();
     dragOffsetX = e.clientX - rect.left;
     dragOffsetY = e.clientY - rect.top;
+    return;
+  }
+
+  // Check if we clicked on an NPC in the canvas
+  const canvasRect = canvas.getBoundingClientRect();
+  if (e.clientX >= canvasRect.left && e.clientX <= canvasRect.right &&
+      e.clientY >= canvasRect.top && e.clientY <= canvasRect.bottom) {
+    const mx = e.clientX - canvasRect.left + camera.x;
+    const my = e.clientY - canvasRect.top + camera.y;
+    for (let i = npcs.length - 1; i >= 0; i--) {
+      const npc = npcs[i];
+      if (mx >= npc.x && mx <= npc.x + npc.w &&
+          my >= npc.y && my <= npc.y + npc.h) {
+        draggedNPC = npc;
+        dragOffsetX = mx - npc.x;
+        dragOffsetY = my - npc.y;
+        return;
+      }
+    }
   }
 });
 
 document.addEventListener('mousemove', e => {
-  if (!editMode || !draggedBB) return;
-  const containerRect = document.getElementById('game-container').getBoundingClientRect();
-  // Calculate raw screen X/Y
-  let screenX = e.clientX - containerRect.left - dragOffsetX;
-  let screenY = e.clientY - containerRect.top - dragOffsetY;
-  // Convert back to absolute World Coordinates
-  let wx = screenX + camera.x;
-  let wy = screenY + camera.y;
+  if (!editMode) return;
   
-  draggedBB.setAttribute('data-wx', wx);
-  draggedBB.setAttribute('data-wy', wy);
+  if (draggedBB) {
+    const containerRect = document.getElementById('game-container').getBoundingClientRect();
+    let screenX = e.clientX - containerRect.left - dragOffsetX;
+    let screenY = e.clientY - containerRect.top - dragOffsetY;
+    let wx = screenX + camera.x;
+    let wy = screenY + camera.y;
+    draggedBB.setAttribute('data-wx', wx);
+    draggedBB.setAttribute('data-wy', wy);
+  } else if (draggedNPC) {
+    const canvasRect = canvas.getBoundingClientRect();
+    const mx = e.clientX - canvasRect.left + camera.x;
+    const my = e.clientY - canvasRect.top + camera.y;
+    draggedNPC.x = mx - dragOffsetX;
+    draggedNPC.y = my - dragOffsetY;
+  }
 });
 
-document.addEventListener('mouseup', () => { draggedBB = null; });
+document.addEventListener('mouseup', () => { draggedBB = null; draggedNPC = null; });
 
 // Double Click to Edit URL
 document.addEventListener('dblclick', e => {
@@ -248,6 +274,11 @@ function exportMap() {
   // 3. Grab the full HTML
   let htmlContent = "<!DOCTYPE html>\n<html lang=\"en\">\n" + document.documentElement.innerHTML + "\n</html>";
   
+  // 3b. Update NPC positions in exported HTML
+  const npcRegex = /const npcs = \[([\s\S]*?)\];/;
+  const newNpcString = "const npcs = " + JSON.stringify(npcs, null, 2).replace(/"([^"]+)":/g, '$1:') + ";";
+  htmlContent = htmlContent.replace(npcRegex, newNpcString);
+
   // 4. Create Blob and Download
   let blob = new Blob([htmlContent], {type: "text/html"});
   let url = URL.createObjectURL(blob);
@@ -371,44 +402,44 @@ const npcs = [
   { x:340,y:200,w:28,h:28,color:'#ecf0f1',name:'Coach Taylah',cap:'#e67e22',facing:'down', type:'coach', sport:'PICKLEBALL',
     dialogue:['Welcome to Pickleball! The kitchen (red zone) is off limits for volleys.','Step onto the blue court and press SPACE to start the volley drill!'],
     quizzes: [
-      { q: 'What is the non-volley zone called?', options: ['The Kitchen', 'The Box', 'The Crease'], answer: 0 },
-      { q: 'Can you volley while standing in the kitchen?', options: ['Yes', 'No', 'Only on serves'], answer: 1 },
-      { q: 'What score is a pickleball game usually played to?', options: ['11', '15', '21'], answer: 0 }
+      { t: 'Pickleball courts have a 7-foot area on both sides of the net known as the Non-Volley Zone. Most people call it "The Kitchen".', q: 'What is the non-volley zone called?', options: ['The Kitchen', 'The Box', 'The Crease'], answer: 0 },
+      { t: 'You cannot hit the ball out of the air (volley) while standing in the kitchen. It must bounce first.', q: 'Can you volley while standing in the kitchen?', options: ['Yes', 'No', 'Only on serves'], answer: 1 },
+      { t: 'Games are typically played to 11 points, and you must win by 2. Tournament games might go to 15 or 21.', q: 'What score is a pickleball game usually played to?', options: ['11', '15', '21'], answer: 0 }
     ] },
   { x:110,y:370,w:28,h:28,color:'#ecf0f1',name:'Coach Shirley',cap:'#9b59b6',facing:'right', type:'coach', sport:'PICKLEBALL',
     dialogue:['Have you joined the Brisbane Pickleball Club?','Check the red board to your left for sign-ups!'],
     quizzes: [
-      { q: 'Where do you serve from?', options: ['Baseline', 'Kitchen line', 'Sideline'], answer: 0 },
-      { q: 'What happens if a serve hits the net but lands in?', options: ['Fault', 'Let (Re-serve)', 'Play continues'], answer: 1 },
-      { q: 'What must the ball do before you can volley?', options: ['Bounce once on each side', 'Bounce twice', 'Nothing'], answer: 0 }
+      { t: 'When serving, both feet must remain behind the baseline until the ball is struck.', q: 'Where do you serve from?', options: ['Baseline', 'Kitchen line', 'Sideline'], answer: 0 },
+      { t: 'If a serve hits the net cord but still lands in the correct service box, it is called a "Let" and the server gets to re-serve.', q: 'What happens if a serve hits the net but lands in?', options: ['Fault', 'Let (Re-serve)', 'Play continues'], answer: 1 },
+      { t: 'The "Two-Bounce Rule": The serve must bounce, and the return must bounce. Only then can volleys begin.', q: 'What must the ball do before you can volley?', options: ['Bounce once on each side', 'Bounce twice', 'Nothing'], answer: 0 }
     ] },
   { x:1160,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach MJ',cap:'#d35400',facing:'down', type:'coach', sport:'BASKETBALL',
     dialogue:['Welcome to the Hardwood! Basketball is 80% mental, 20% physical.','Head to centre court and press SPACE to take your free throws!'],
     quizzes: [
-      { q: 'How many points is a free throw worth?', options: ['1', '2', '3'], answer: 0 },
-      { q: 'What is a double dribble?', options: ['Dribbling with two hands', 'Dribbling twice', 'Both'], answer: 2 },
-      { q: 'How high is a regulation basketball hoop?', options: ['9 feet', '10 feet', '11 feet'], answer: 1 }
+      { t: 'A free throw is an unopposed attempt to score points from the free-throw line, and is worth exactly 1 point.', q: 'How many points is a free throw worth?', options: ['1', '2', '3'], answer: 0 },
+      { t: 'A double dribble is an illegal move where a player dribbles with both hands at once, or stops dribbling and then starts again.', q: 'What is a double dribble?', options: ['Dribbling with two hands', 'Dribbling twice', 'Both'], answer: 2 },
+      { t: 'The rim of the basketball hoop is exactly 10 feet off the ground in professional, college, and high school basketball.', q: 'How high is a regulation basketball hoop?', options: ['9 feet', '10 feet', '11 feet'], answer: 1 }
     ] },
   { x:1960,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach Mia',cap:'#27ae60',facing:'down', type:'coach', sport:'SOCCER',
     dialogue:['Olá! The beautiful game awaits.','Step onto the pitch and press SPACE for a penalty shootout!'],
     quizzes: [
-      { q: 'Can a goalkeeper touch the ball with their hands outside the penalty area?', options: ['Yes', 'No', 'Only on goal kicks'], answer: 1 },
-      { q: 'What happens when a player receives a red card?', options: ['Warning', 'Substituted', 'Ejected'], answer: 2 },
-      { q: 'How long is a standard soccer match?', options: ['60 mins', '90 mins', '120 mins'], answer: 1 }
+      { t: 'The goalkeeper is the only player allowed to use their hands, but strictly only inside their own penalty box.', q: 'Can a goalkeeper touch the ball with their hands outside the penalty area?', options: ['Yes', 'No', 'Only on goal kicks'], answer: 1 },
+      { t: 'If a player commits a serious foul, they are shown a red card and are instantly ejected from the match. Their team must play a man down.', q: 'What happens when a player receives a red card?', options: ['Warning', 'Substituted', 'Ejected'], answer: 2 },
+      { t: 'A standard professional soccer match consists of two 45-minute halves, making a total of 90 minutes plus stoppage time.', q: 'How long is a standard soccer match?', options: ['60 mins', '90 mins', '120 mins'], answer: 1 }
     ] },
   { x:390,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Paul',cap:'#1abc9c',facing:'right', type:'coach', sport:'LACROSSE',
     dialogue:['Lacrosse — fastest sport on two feet!','Attackers cannot enter the circular crease. Use the catch drill to warm up!'],
     quizzes: [
-      { q: 'What is the circle around the goal called?', options: ['The Box', 'The Crease', 'The Zone'], answer: 1 },
-      { q: 'How many players are on a men\'s field lacrosse team?', options: ['10', '11', '12'], answer: 0 },
-      { q: 'Can an attacker step in the crease?', options: ['Yes', 'No', 'Only after shooting'], answer: 1 }
+      { t: 'The goal is surrounded by a circle known as the crease, which protects the goalie.', q: 'What is the circle around the goal called?', options: ['The Box', 'The Crease', 'The Zone'], answer: 1 },
+      { t: 'In men\'s field lacrosse, each team fields 10 players on the field at a time: 1 goalie, 3 defenders, 3 midfielders, and 3 attackers.', q: 'How many players are on a men\'s field lacrosse team?', options: ['10', '11', '12'], answer: 0 },
+      { t: 'The crease belongs to the goalie. Attackers are strictly forbidden from stepping inside the crease at any time.', q: 'Can an attacker step in the crease?', options: ['Yes', 'No', 'Only after shooting'], answer: 1 }
     ] },
   { x:1960,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Lexi',cap:'#2980b9',facing:'left', type:'coach', sport:'FIELDHOCKEY',
     dialogue:['Field Hockey — pure skill and stamina.','You must be inside the striking circle to score. Try the drag-flick drill!'],
     quizzes: [
-      { q: 'Which side of the stick can you use?', options: ['Flat side', 'Rounded side', 'Both'], answer: 0 },
-      { q: 'Where must you be to score a goal?', options: ['Inside the striking circle', 'Anywhere', 'Penalty spot'], answer: 0 },
-      { q: 'Can you use your feet to kick the ball?', options: ['Yes', 'No', 'Only the goalie'], answer: 2 }
+      { t: 'A field hockey stick has a flat side and a rounded side. Players are only permitted to hit the ball with the flat side.', q: 'Which side of the stick can you use?', options: ['Flat side', 'Rounded side', 'Both'], answer: 0 },
+      { t: 'To score a valid goal in field hockey, the ball must be struck from inside the 16-yard semi-circle called the striking circle.', q: 'Where must you be to score a goal?', options: ['Inside the striking circle', 'Anywhere', 'Penalty spot'], answer: 0 },
+      { t: 'Only the goalkeeper is allowed to intentionally use their feet or body to block and kick the ball.', q: 'Can you use your feet to kick the ball?', options: ['Yes', 'No', 'Only the goalie'], answer: 2 }
     ] },
 ];
 
@@ -456,7 +487,7 @@ function handleInteraction() {
       if (Math.hypot(player.x-npc.x, player.y-npc.y) < 55) {
         activeNPC = npc;
         if (npc.type === 'coach' && player.skills[npc.sport] < npc.quizzes.length) {
-          gameState = 'QUIZ';
+          gameState = 'TEACH';
         } else {
           curDlg = npc.dialogue; dlgIdx = 0; gameState = 'DIALOGUE';
         }
@@ -472,14 +503,32 @@ function handleInteraction() {
 let quizFeedback = '';
 
 function handleMouseDown(e) {
+  if (gameState === 'TEACH') {
+    const quizIdx = player.skills[activeNPC.sport];
+    const quiz = activeNPC.quizzes[quizIdx];
+    // Check if Continue button clicked
+    if (mouseX > 300 && mouseX < 500 && mouseY > 420 && mouseY < 470) {
+      gameState = 'QUIZ';
+    }
+    return;
+  }
   if (gameState === 'QUIZ') {
     if (quizFeedback) return; // Prevent clicking while showing feedback
     const quizIdx = player.skills[activeNPC.sport];
     const quiz = activeNPC.quizzes[quizIdx];
-    const startY = 300 - (quiz.options.length * 25);
+    // Re-calculate the startY based on question length just like in drawQuizUI
+    ctx.font='18px Nunito,sans-serif';
+    const words = quiz.q.split(' '); let line = ''; let y = 210;
+    for(let n = 0; n < words.length; n++) {
+      const testLine = line + words[n] + ' ';
+      if (ctx.measureText(testLine).width > 420 && n > 0) { line = words[n] + ' '; y += 26; }
+      else { line = testLine; }
+    }
+    const startY = y + 40;
+
     for (let i = 0; i < quiz.options.length; i++) {
-      const by = startY + i * 50;
-      if (mouseX > 200 && mouseX < 600 && mouseY > by && mouseY < by + 40) {
+      const by = startY + i * 55;
+      if (mouseX > 180 && mouseX < 620 && mouseY > by && mouseY < by + 45) {
         if (i === quiz.answer) {
           quizFeedback = 'CORRECT! +1 Skill';
           setTimeout(() => {
@@ -811,12 +860,13 @@ function render() {
 
   document.getElementById('cursor-ui').style.display = inGame?'none':'flex';
 
-  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT' || gameState==='QUIZ') {
+  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT' || gameState==='QUIZ' || gameState === 'TEACH') {
     drawWorld();
     if (gameState==='PLAY') { drawSkillsHUD(); }
     if (activePrompt && gameState==='PLAY') { const pw=Math.min(ctx.measureText(activePrompt).width+40,580); ctx.fillStyle='rgba(0,0,0,0.85)'; roundRect(ctx,400-pw/2,520,pw,36,18); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText(activePrompt,400,543); }
     if (!activePrompt && gameState==='PLAY' && npcs.some(n=>Math.hypot(player.x-n.x,player.y-n.y)<55)) { ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx,250,520,300,36,18); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText('Press SPACE to interact',400,543); }
     if (gameState==='DIALOGUE' && activeNPC) { ctx.fillStyle='rgba(0,0,0,0.88)'; roundRect(ctx,40,448,720,130,12); ctx.fill(); ctx.fillStyle=activeNPC.cap; ctx.fillRect(40,448,8,130); ctx.fillStyle=activeNPC.cap; ctx.font='bold 19px Black Han Sans,sans-serif'; ctx.textAlign='left'; ctx.fillText(activeNPC.name,60,476); ctx.fillStyle='white'; ctx.font='17px Nunito,sans-serif'; ctx.fillText(curDlg[dlgIdx],60,510); ctx.font='13px Nunito,sans-serif'; ctx.fillStyle='#bdc3c7'; ctx.fillText(`${dlgIdx+1}/${curDlg.length} — Press SPACE to continue`,490,562); }
+    if (gameState==='TEACH') { drawTeachUI(); }
     if (gameState==='QUIZ') { drawQuizUI(); }
   } else if (gameState==='PICKLEBALL') { drawPickleMinigame(); } else if (gameState==='BASKETBALL') { drawBballMinigame(); } else if (gameState==='SOCCER') { drawSoccerMinigame(); } else if (gameState==='LACROSSE') { drawLaxMinigame(); } else if (gameState==='FIELDHOCKEY') { drawFHMinigame(); }
 }
@@ -866,46 +916,117 @@ function drawSkillsHUD() {
   ctx.restore();
 }
 
-function drawQuizUI() {
-  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+function drawTeachUI() {
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const quizIdx = player.skills[activeNPC.sport];
   const quiz = activeNPC.quizzes[quizIdx];
-  if (!quiz) return; // safeguard for rapid state updates
+  if (!quiz) return;
 
-  ctx.fillStyle=activeNPC.cap; roundRect(ctx, 150, 100, 500, 400, 16); ctx.fill();
-  ctx.fillStyle='#fff'; roundRect(ctx, 154, 104, 492, 392, 12); ctx.fill();
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#fff';
+  roundRect(ctx, 150, 150, 500, 340, 20); ctx.fill();
+  ctx.restore();
 
-  ctx.fillStyle='#333'; ctx.font='bold 24px Nunito,sans-serif'; ctx.textAlign='center';
-  ctx.fillText('Coach ' + activeNPC.name.replace('Coach ','') + '\'s Quiz', 400, 150);
+  ctx.fillStyle = activeNPC.cap;
+  ctx.beginPath();
+  ctx.moveTo(170, 150); ctx.lineTo(630, 150);
+  ctx.quadraticCurveTo(650, 150, 650, 170);
+  ctx.lineTo(650, 160); ctx.lineTo(150, 160); ctx.lineTo(150, 170);
+  ctx.quadraticCurveTo(150, 150, 170, 150);
+  ctx.fill();
 
-  ctx.fillStyle='#555'; ctx.font='18px Nunito,sans-serif';
-  // Wrap question text
-  const words = quiz.q.split(' '); let line = ''; let y = 200;
+  ctx.fillStyle='#333'; ctx.font='bold 26px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Coach ' + activeNPC.name.replace('Coach ','') + '\'s Tip', 400, 200);
+
+  ctx.fillStyle='#555'; ctx.font='20px Nunito,sans-serif';
+  const words = quiz.t.split(' '); let line = ''; let y = 250;
   for(let n = 0; n < words.length; n++) {
     const testLine = line + words[n] + ' ';
-    if (ctx.measureText(testLine).width > 450 && n > 0) { ctx.fillText(line, 400, y); line = words[n] + ' '; y += 25; }
+    if (ctx.measureText(testLine).width > 440 && n > 0) { ctx.fillText(line, 400, y); line = words[n] + ' '; y += 30; }
     else { line = testLine; }
   }
   ctx.fillText(line, 400, y);
 
-  const startY = 300 - (quiz.options.length * 25);
+  const isHover = mouseX > 300 && mouseX < 500 && mouseY > 420 && mouseY < 470;
+  ctx.fillStyle = isHover ? '#f7f9fa' : '#fff';
+  ctx.strokeStyle = isHover ? activeNPC.cap : '#e5e5e5'; ctx.lineWidth = 3;
+  roundRect(ctx, 300, 420, 200, 50, 12); ctx.fill();
+
+  ctx.fillStyle = isHover ? activeNPC.cap + '33' : '#e5e5e5';
+  roundRect(ctx, 300, 465, 200, 5, {bl:12, br:12}); ctx.fill();
+
+  ctx.stroke();
+  ctx.fillStyle = isHover ? activeNPC.cap : '#4b4b4b'; ctx.font='bold 18px Nunito,sans-serif';
+  ctx.fillText('Got It!', 400, 452);
+}
+
+function drawQuizUI() {
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const quizIdx = player.skills[activeNPC.sport];
+  const quiz = activeNPC.quizzes[quizIdx];
+  if (!quiz) return; // safeguard for rapid state updates
+
+  // Soft shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#fff';
+  roundRect(ctx, 150, 120, 500, 360, 20); ctx.fill();
+  ctx.restore();
+
+  // Header stripe
+  ctx.fillStyle = activeNPC.cap;
+  ctx.beginPath();
+  ctx.moveTo(170, 120); ctx.lineTo(630, 120);
+  ctx.quadraticCurveTo(650, 120, 650, 140);
+  ctx.lineTo(650, 130); ctx.lineTo(150, 130); ctx.lineTo(150, 140);
+  ctx.quadraticCurveTo(150, 120, 170, 120);
+  ctx.fill();
+
+  ctx.fillStyle='#333'; ctx.font='bold 26px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Knowledge Check', 400, 170);
+
+  ctx.fillStyle='#555'; ctx.font='18px Nunito,sans-serif';
+  // Wrap question text
+  const words = quiz.q.split(' '); let line = ''; let y = 210;
+  for(let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    if (ctx.measureText(testLine).width > 420 && n > 0) { ctx.fillText(line, 400, y); line = words[n] + ' '; y += 26; }
+    else { line = testLine; }
+  }
+  ctx.fillText(line, 400, y);
+
+  const startY = y + 40;
   quiz.options.forEach((opt, i) => {
-    const by = startY + i * 50;
-    const isHover = mouseX > 200 && mouseX < 600 && mouseY > by && mouseY < by + 40;
-    ctx.fillStyle = isHover ? '#f1f2f6' : '#fff';
-    ctx.strokeStyle = activeNPC.cap; ctx.lineWidth = 2;
-    roundRect(ctx, 200, by, 400, 40, 8); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#333'; ctx.font = 'bold 16px Nunito,sans-serif';
-    ctx.fillText(opt, 400, by + 26);
+    const by = startY + i * 55;
+    const isHover = mouseX > 180 && mouseX < 620 && mouseY > by && mouseY < by + 45;
+
+    // Duolingo style button
+    ctx.fillStyle = isHover ? '#f7f9fa' : '#fff';
+    ctx.strokeStyle = isHover ? activeNPC.cap : '#e5e5e5';
+    ctx.lineWidth = isHover ? 3 : 2;
+
+    roundRect(ctx, 180, by, 440, 45, 12);
+    ctx.fill();
+
+    // Bottom shadow for button
+    ctx.fillStyle = isHover ? activeNPC.cap + '33' : '#e5e5e5';
+    roundRect(ctx, 180, by + 40, 440, 5, {bl: 12, br: 12});
+    ctx.fill();
+
+    ctx.stroke();
+
+    ctx.fillStyle = isHover ? activeNPC.cap : '#4b4b4b';
+    ctx.font = 'bold 16px Nunito,sans-serif';
+    ctx.fillText(opt, 400, by + 28);
   });
 
   if (quizFeedback) {
-    ctx.fillStyle = quizFeedback.includes('CORRECT') ? '#2ecc71' : '#e74c3c';
+    ctx.fillStyle = quizFeedback.includes('CORRECT') ? '#58cc02' : '#ff4b4b';
     ctx.font = 'bold 24px Black Han Sans,sans-serif';
-    ctx.fillText(quizFeedback, 400, 460);
-  } else {
-    ctx.fillStyle = '#95a5a6'; ctx.font = '14px Nunito,sans-serif';
-    ctx.fillText('Click an answer', 400, 460);
+    ctx.fillText(quizFeedback, 400, startY + quiz.options.length * 55 + 30);
   }
 }
 
