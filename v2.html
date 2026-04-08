@@ -893,20 +893,21 @@ function drawEntity(e) {
 }
 
 // ─── RENDER ──────────────────────────────────────────────
+const bbConfig = [
+  { id:'bb-pickle', wx:275, wy:42, el:document.getElementById('bb-pickle') },
+  { id:'bb-bball', wx:1380, wy:50, el:document.getElementById('bb-bball') },
+  { id:'bb-soccer', wx:1810, wy:50, el:document.getElementById('bb-soccer') },
+  { id:'bb-lacrosse', wx:630, wy:718, el:document.getElementById('bb-lacrosse') },
+  { id:'bb-fhockey', wx:1810, wy:715, el:document.getElementById('bb-fhockey') },
+];
+const cursorUI = document.getElementById('cursor-ui');
+
 function render() {
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   // Position & show/hide YouTube billboards
-  const bbConfig = [
-    { id:'bb-pickle', wx:275, wy:42 },
-    { id:'bb-bball', wx:1380, wy:50 },
-    { id:'bb-soccer', wx:1810, wy:50 },
-    { id:'bb-lacrosse', wx:630, wy:718 },
-    { id:'bb-fhockey', wx:1810, wy:715 },
-  ];
   const inGame = ['PICKLEBALL','BASKETBALL','SOCCER','LACROSSE','FIELDHOCKEY','MODAL'].includes(gameState);
-  bbConfig.forEach(({id,wx,wy})=>{
-    const el=document.getElementById(id);
+  bbConfig.forEach(({el,wx,wy})=>{
     if(!el) return;
     const sx=wx-camera.x, sy=wy-camera.y;
     const visible = !inGame && sx>-260&&sx<820&&sy>-200&&sy<620;
@@ -915,7 +916,7 @@ function render() {
     el.style.transform = `translate(${sx}px,${sy}px)`;
   });
 
-  document.getElementById('cursor-ui').style.display = inGame?'none':'flex';
+  if (cursorUI) cursorUI.style.display = inGame?'none':'flex';
 
   if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL') {
     drawWorld();
