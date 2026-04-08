@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sport Planet - MVP v10</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #1a252f; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, sans-serif; color: white; flex-direction: column; overflow: hidden; }
+        body { margin: 0; padding: 0; background: radial-gradient(ellipse at top, #0d1b2a 0%, #1a252f 60%, #0d1b2a 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E"); display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, sans-serif; color: white; flex-direction: column; overflow: hidden; }
         #game-container { position: relative; width: 800px; height: 600px; overflow: hidden; border: 4px solid #ecf0f1; border-radius: 8px; box-shadow: 0px 15px 40px rgba(0,0,0,0.6); background-color: #34495e; cursor: crosshair; }
+        #game-container::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); mix-blend-mode: overlay; z-index: 999; }
         canvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; }
         #instructions { margin-top: 15px; text-align: center; color: #bdc3c7; font-size: 14px; }
         kbd { background: #eee; border-radius: 4px; border: 1px solid #b4b4b4; color: #333; font-size: .85em; font-weight: 700; padding: 3px 6px; box-shadow: 0 2px 0 #ccc; }
@@ -78,7 +79,27 @@ ytBoardsData.forEach(board => {
 
 // --- CORE GAME SETUP ---
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+
+// --- PROCEDURAL TEXTURES ---
+const textures = {};
+function initTextures() {
+  const mkCanvas = (s) => { const c=document.createElement('canvas'); c.width=c.height=s; return [c, c.getContext('2d')]; };
+  const [cg, ctxg] = mkCanvas(128);
+  ctxg.fillStyle = '#558240'; ctxg.fillRect(0,0,128,128);
+  for(let i=0;i<400;i++){
+    ctxg.fillStyle = Math.random()>0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+    ctxg.fillRect(Math.random()*128,Math.random()*128,2,Math.random()*6+2);
+  }
+  textures.grass = ctx.createPattern(cg, 'repeat');
+  const [cp, ctxp] = mkCanvas(128);
+  ctxp.fillStyle = '#95a5a6'; ctxp.fillRect(0,0,128,128);
+  for(let i=0;i<1000;i++){
+    ctxp.fillStyle = `rgba(${Math.random()*50},${Math.random()*50},${Math.random()*50},0.05)`;
+    ctxp.fillRect(Math.random()*128,Math.random()*128,1,1);
+  }
+  textures.pavement = ctx.createPattern(cp, 'repeat');
+}
+initTextures();
 const WORLD_WIDTH = 2400; const WORLD_HEIGHT = 1600;
 let gameState = 'PLAY'; // PLAY, MINIGAME_PICKLEBALL, MINIGAME_BASKETBALL, MINIGAME_TARGET
 const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
@@ -195,8 +216,8 @@ function drawWorld() {
     ctx.save(); ctx.translate(-camera.x, -camera.y);
 
     // Ground & Paths
-    ctx.fillStyle = '#558240'; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    ctx.fillStyle = '#95a5a6'; ctx.fillRect(400, 450, 1600, 100); ctx.fillRect(1150, 450, 100, 800); 
+    ctx.fillStyle = textures.grass; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    ctx.fillStyle = textures.pavement; ctx.fillRect(400, 450, 1600, 100); ctx.fillRect(1150, 450, 100, 800);
     ctx.beginPath(); ctx.arc(1200, 1200, 150, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.arc(1200, 1200, 100, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#bdc3c7'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.fillText("SPORT PLANET HUB", 1200, 1210);
@@ -251,6 +272,7 @@ function drawWorld() {
 
     ctx.restore();
 }
+const ctx = canvas.getContext('2d');
 
 function render() {
     ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, canvas.width, canvas.height);
