@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sport Planet - MVP v10</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #1a252f; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', Tahoma, sans-serif; color: white; flex-direction: column; overflow: hidden; }
+        #game-container { position: relative; width: 800px; height: 600px; overflow: hidden; border: 4px solid #ecf0f1; border-radius: 8px; box-shadow: 0px 15px 40px rgba(0,0,0,0.6); background-color: #34495e; cursor: crosshair; }
+        canvas { position: absolute; top: 0; left: 0; image-rendering: pixelated; }
+        #instructions { margin-top: 15px; text-align: center; color: #bdc3c7; font-size: 14px; }
+        kbd { background: #eee; border-radius: 4px; border: 1px solid #b4b4b4; color: #333; font-size: .85em; font-weight: 700; padding: 3px 6px; box-shadow: 0 2px 0 #ccc; }
+        
+        /* Dynamic YouTube Billboards */
+        .yt-board { position: absolute; background: #000; border: 4px solid #2c3e50; border-bottom: 25px solid #2c3e50; border-radius: 6px; box-shadow: 0 15px 30px rgba(0,0,0,0.7); pointer-events: none; transition: opacity 0.2s; }
+        .yt-board iframe { pointer-events: auto; width: 100%; height: 100%; border: none; }
+        .yt-label { position: absolute; bottom: -20px; left: 0; width: 100%; text-align: center; color: #ecf0f1; font-size: 10px; font-weight: bold; letter-spacing: 1px; }
+
+        #cursor-ui { position: absolute; bottom: 15px; right: 15px; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 30px; display: flex; gap: 10px; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 50; }
+        .cursor-btn { font-size: 20px; cursor: pointer; transition: transform 0.2s; user-select: none; background: rgba(255,255,255,0.1); width: 34px; height: 34px; display: flex; justify-content: center; align-items: center; border-radius: 50%; }
+        .cursor-btn:hover { transform: scale(1.2); background: rgba(255,255,255,0.3); }
+        .cursor-btn.active { background: #3498db; border: 2px solid white; }
+    </style>
+</head>
+<body>
+
+    <h2 style="margin-bottom: 10px; color: #ecf0f1;">Sport Planet 🌍</h2>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="video-layer"></div>
+
+        <div id="cursor-ui">
+            <span style="font-size: 12px; font-weight: bold; margin-right: 5px;">CURSOR:</span>
+            <div class="cursor-btn active" onclick="setCursor('🎾', this)">🎾</div>
+            <div class="cursor-btn" onclick="setCursor('🏀', this)">🏀</div>
+            <div class="cursor-btn" onclick="setCursor('⚽', this)">⚽</div>
+            <div class="cursor-btn" onclick="setCursor('⚾', this)">⚾</div>
+        </div>
+    </div>
+
+    <div id="instructions">
+        Move: <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> &nbsp;|&nbsp; Interact / Play: <kbd>SPACE</kbd> &nbsp;|&nbsp; Minigames: <kbd>CLICK</kbd><br>
+    </div>
+
+<script>
+// --- UI SETUP ---
+function setCursor(emoji, btnElement) {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' style='font-size:24px'><text y='24'>${emoji}</text></svg>`;
+    const url = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    document.getElementById('game-container').style.cursor = `url("${url}") 16 16, auto`;
+    document.querySelectorAll('.cursor-btn').forEach(btn => btn.classList.remove('active'));
+    if(btnElement) btnElement.classList.add('active');
+}
+setCursor('🎾', document.querySelector('.cursor-btn.active'));
+
+// --- DYNAMIC YOUTUBE BOARDS ---
+const ytBoardsData = [
+    { id: 'yt-1', x: 280, y: 45, w: 240, h: 135, src: 'aRRy0kpiP0s', title: 'PPA HIGHLIGHTS' }, // Pickleball (Standard)
+    { id: 'yt-2', x: 1000, y: 0, w: 400, h: 225, src: 'dQw4w9WgXcQ', title: 'FIBA 3x3 LIVE' }, // Basketball (Giant Widescreen)
+    { id: 'yt-3', x: 2250, y: 150, w: 120, h: 200, src: 'aRRy0kpiP0s', title: 'SOCCER SHORTS' } // Soccer (Vertical Billboard)
+];
+
+const videoLayer = document.getElementById('video-layer');
+ytBoardsData.forEach(board => {
+    const el = document.createElement('div');
+    el.className = 'yt-board';
+    el.id = board.id;
+    el.style.width = board.w + 'px';
+    el.style.height = board.h + 'px';
+    el.innerHTML = `
+        <iframe src="https://www.youtube.com/embed/${board.src}?mute=1&loop=1&playlist=${board.src}&controls=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div class="yt-label">📺 ${board.title}</div>
+    `;
+    videoLayer.appendChild(el);
+});
+
+// --- CORE GAME SETUP ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const WORLD_WIDTH = 2400; const WORLD_HEIGHT = 1600;
+let gameState = 'PLAY'; // PLAY, MINIGAME_PICKLEBALL, MINIGAME_BASKETBALL, MINIGAME_TARGET
+const camera = { x: 0, y: 0, width: canvas.width, height: canvas.height };
+
+const player = { x: 1200, y: 1200, width: 32, height: 32, speed: 6, color: '#e74c3c', facing: 'up', type: 'player' };
+const keys = { w: false, a: false, s: false, d: false, space: false }; let spacePressed = false; 
+
+// Generate procedural trees
+const trees = [];
+for(let i=0; i<80; i++) {
+    trees.push({ x: Math.random() * WORLD_WIDTH, y: Math.random() * WORLD_HEIGHT, size: 20 + Math.random()*15 });
+}
+
+const interactiveZones = [
+    { x: 200, y: 250, width: 400, height: 200, type: 'MINIGAME_PICKLEBALL', prompt: "Press SPACE to Play Volley Drill" },
+    { x: 950, y: 100, width: 500, height: 300, type: 'MINIGAME_BASKETBALL', prompt: "Press SPACE to Shoot Hoops" },
+    { x: 1700, y: 100, width: 600, height: 300, type: 'MINIGAME_TARGET', sport: 'Soccer', prompt: "Press SPACE for Penalty Kicks" },
+    { x: 100, y: 700, width: 600, height: 300, type: 'MINIGAME_TARGET', sport: 'Lacrosse', prompt: "Press SPACE for Target Practice" },
+    { x: 1700, y: 700, width: 600, height: 300, type: 'MINIGAME_TARGET', sport: 'Field Hockey', prompt: "Press SPACE for Slap Shots" }
+];
+
+// --- MINIGAME STATE MACHINES ---
+let mouseX = 400; let mouseY = 500;
+const mgPickle = { paddle: { x: 350, y: 500, w: 80, h: 15 }, ball: { x: 400, y: 100, r: 10, vx: 5, vy: 5 }, score: 0, high: 0 };
+const mgBasket = { meterX: 200, meterDir: 8, isShooting: false, result: '', score: 0 };
+const mgTarget = { title: '', bg: '', targetX: 400, targetY: 200, targetRadius: 30, score: 0, timer: 300 };
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'w' || e.key === 'ArrowUp') { keys.w = true; player.facing = 'up'; }
+    if (e.key === 'a' || e.key === 'ArrowLeft') { keys.a = true; player.facing = 'left'; }
+    if (e.key === 's' || e.key === 'ArrowDown') { keys.s = true; player.facing = 'down'; }
+    if (e.key === 'd' || e.key === 'ArrowRight') { keys.d = true; player.facing = 'right'; }
+    if (e.key === ' ' && !spacePressed) { keys.space = true; spacePressed = true; handleInteraction(); }
+});
+window.addEventListener('keyup', (e) => {
+    if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        if(e.key === ' ') { keys.space = false; spacePressed = false; }
+        else keys[e.key] = false;
+    }
+});
+canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top; });
+canvas.addEventListener('mousedown', (e) => {
+    if (gameState === 'MINIGAME_BASKETBALL' && !mgBasket.isShooting) {
+        mgBasket.isShooting = true;
+        // Check if meter is in the green zone (center)
+        if (mgBasket.meterX > 350 && mgBasket.meterX < 450) { mgBasket.result = 'SWISH!'; mgBasket.score++; }
+        else { mgBasket.result = 'BRICK...'; }
+        setTimeout(() => { mgBasket.isShooting = false; mgBasket.result = ''; }, 1500);
+    }
+    else if (gameState === 'MINIGAME_TARGET') {
+        if (Math.hypot(mouseX - mgTarget.targetX, mouseY - mgTarget.targetY) < mgTarget.targetRadius) {
+            mgTarget.score++;
+            mgTarget.targetX = 100 + Math.random() * 600; mgTarget.targetY = 100 + Math.random() * 300;
+        }
+    }
+});
+
+let activeZonePrompt = "";
+
+function handleInteraction() {
+    if (gameState === 'PLAY') {
+        for (let zone of interactiveZones) {
+            if (player.x+16 > zone.x && player.x+16 < zone.x+zone.width && player.y+16 > zone.y && player.y+16 < zone.y+zone.height) {
+                gameState = zone.type;
+                if (gameState === 'MINIGAME_PICKLEBALL') { mgPickle.score = 0; mgPickle.ball.y = 100; mgPickle.ball.vy = 5; }
+                if (gameState === 'MINIGAME_BASKETBALL') { mgBasket.score = 0; mgBasket.isShooting = false; mgBasket.result = ''; }
+                if (gameState === 'MINIGAME_TARGET') { 
+                    mgTarget.score = 0; mgTarget.timer = 600; mgTarget.title = zone.sport; 
+                    mgTarget.bg = zone.sport === 'Soccer' ? '#27ae60' : zone.sport === 'Lacrosse' ? '#1abc9c' : '#2ecc71';
+                }
+                return;
+            }
+        }
+    } else {
+        // Exit any minigame by pressing SPACE
+        gameState = 'PLAY'; 
+    }
+}
+
+function update() {
+    if (gameState === 'PLAY') {
+        if (keys.w && player.y > 0) player.y -= player.speed;
+        if (keys.s && player.y < WORLD_HEIGHT - player.height) player.y += player.speed;
+        if (keys.a && player.x > 0) player.x -= player.speed;
+        if (keys.d && player.x < WORLD_WIDTH - player.width) player.x += player.speed;
+
+        camera.x = Math.max(0, Math.min(player.x - canvas.width/2, WORLD_WIDTH - canvas.width));
+        camera.y = Math.max(0, Math.min(player.y - canvas.height/2, WORLD_HEIGHT - canvas.height));
+
+        activeZonePrompt = "";
+        for (let zone of interactiveZones) if (player.x+16 > zone.x && player.x+16 < zone.x+zone.width && player.y+16 > zone.y && player.y+16 < zone.y+zone.height) activeZonePrompt = zone.prompt;
+
+    } else if (gameState === 'MINIGAME_PICKLEBALL') {
+        mgPickle.paddle.x = mouseX - mgPickle.paddle.w / 2; 
+        mgPickle.ball.x += mgPickle.ball.vx; mgPickle.ball.y += mgPickle.ball.vy;
+        if (mgPickle.ball.x < 0 || mgPickle.ball.x > canvas.width) mgPickle.ball.vx *= -1;
+        if (mgPickle.ball.y < 0) mgPickle.ball.vy *= -1;
+        if (mgPickle.ball.vy > 0 && mgPickle.ball.y > 480 && mgPickle.ball.x > mgPickle.paddle.x && mgPickle.ball.x < mgPickle.paddle.x + mgPickle.paddle.w) {
+            mgPickle.ball.vy *= -1.05; mgPickle.ball.vx *= 1.05; mgPickle.score++; mgPickle.ball.y = 480; 
+        }
+        if (mgPickle.ball.y > canvas.height) { if(mgPickle.score > mgPickle.high) mgPickle.high = mgPickle.score; gameState = 'PLAY'; }
+    } else if (gameState === 'MINIGAME_BASKETBALL') {
+        if (!mgBasket.isShooting) {
+            mgBasket.meterX += mgBasket.meterDir;
+            if (mgBasket.meterX > 600 || mgBasket.meterX < 200) mgBasket.meterDir *= -1;
+        }
+    } else if (gameState === 'MINIGAME_TARGET') {
+        mgTarget.timer--;
+        if (mgTarget.timer <= 0) gameState = 'PLAY';
+    }
+}
+
+function drawWorld() {
+    ctx.save(); ctx.translate(-camera.x, -camera.y);
+
+    // Ground & Paths
+    ctx.fillStyle = '#558240'; ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    ctx.fillStyle = '#95a5a6'; ctx.fillRect(400, 450, 1600, 100); ctx.fillRect(1150, 450, 100, 800); 
+    ctx.beginPath(); ctx.arc(1200, 1200, 150, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.arc(1200, 1200, 100, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#bdc3c7'; ctx.font = 'bold 30px Arial'; ctx.textAlign = 'center'; ctx.fillText("SPORT PLANET HUB", 1200, 1210);
+
+    // Zones
+    // Pickleball
+    ctx.fillStyle = '#27ae60'; ctx.fillRect(0, 0, 800, 450); ctx.fillStyle = '#2980b9'; ctx.fillRect(200, 250, 400, 200); 
+    ctx.strokeStyle = 'white'; ctx.lineWidth = 4; ctx.strokeRect(200, 250, 400, 200); ctx.beginPath(); ctx.moveTo(400, 250); ctx.lineTo(400, 450); ctx.stroke();
+    ctx.fillStyle = '#e74c3c'; ctx.fillRect(350, 250, 100, 200);
+    // Basketball
+    ctx.fillStyle = '#2c3e50'; ctx.fillRect(800, 0, 800, 450); ctx.fillStyle = '#d35400'; ctx.fillRect(950, 100, 500, 300);
+    ctx.strokeRect(950, 100, 500, 300); ctx.beginPath(); ctx.moveTo(1200, 100); ctx.lineTo(1200, 400); ctx.stroke(); ctx.beginPath(); ctx.arc(1200, 250, 40, 0, Math.PI*2); ctx.stroke();
+    // Soccer
+    ctx.fillStyle = '#27ae60'; ctx.fillRect(1600, 0, 800, 450); ctx.strokeRect(1700, 100, 600, 300); ctx.beginPath(); ctx.moveTo(2000, 100); ctx.lineTo(2000, 400); ctx.stroke(); ctx.beginPath(); ctx.arc(2000, 250, 50, 0, Math.PI*2); ctx.stroke();
+    // Lacrosse
+    ctx.fillStyle = '#1abc9c'; ctx.fillRect(0, 550, 800, 1050); ctx.strokeRect(100, 700, 600, 300); ctx.beginPath(); ctx.arc(200, 850, 40, 0, Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.arc(600, 850, 40, 0, Math.PI*2); ctx.stroke();
+    // Hockey
+    ctx.fillStyle = '#2ecc71'; ctx.fillRect(1600, 550, 800, 1050); ctx.strokeRect(1700, 700, 600, 300); ctx.beginPath(); ctx.arc(1700, 850, 100, -Math.PI/2, Math.PI/2); ctx.stroke(); ctx.beginPath(); ctx.arc(2300, 850, 100, Math.PI/2, -Math.PI/2); ctx.stroke();
+
+    // Draw Map Detail (Trees)
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    trees.forEach(t => {
+        // Exclude trees from paths and courts
+        if(t.y > 450 && t.y < 550 || t.x > 1150 && t.x < 1250) return;
+        ctx.beginPath(); ctx.arc(t.x + 5, t.y + 10, t.size, 0, Math.PI*2); ctx.fill(); // shadow
+    });
+    ctx.fillStyle = '#1e5128';
+    trees.forEach(t => {
+        if(t.y > 450 && t.y < 550 || t.x > 1150 && t.x < 1250) return;
+        ctx.beginPath(); ctx.arc(t.x, t.y, t.size, 0, Math.PI*2); ctx.fill(); 
+        ctx.fillStyle = '#276c35'; ctx.beginPath(); ctx.arc(t.x - t.size/3, t.y - t.size/3, t.size/2, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#1e5128';
+    });
+
+    // --- ANIMATED MINIGAME MARKERS ---
+    let bob = Math.sin(Date.now() / 200) * 10;
+    interactiveZones.forEach(zone => {
+        let mx = zone.x + zone.width / 2;
+        let my = zone.y + zone.height / 2 - 50;
+        
+        ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center';
+        ctx.fillText("🎮 MINIGAME", mx, my + bob);
+        // Draw downward pointing triangle
+        ctx.beginPath(); ctx.moveTo(mx - 15, my + bob + 10); ctx.lineTo(mx + 15, my + bob + 10); ctx.lineTo(mx, my + bob + 30); ctx.fill();
+    });
+
+    // Player
+    let px = player.x; let py = player.y;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'; ctx.beginPath(); ctx.ellipse(px + 16, py + 30, 14, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = player.color; ctx.fillRect(px + 6, py + 14, 20, 16); 
+    ctx.fillStyle = '#f1c27d'; ctx.beginPath(); ctx.arc(px + 16, py + 8, 10, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.fillRect(px+8, py+6, 4, 4); ctx.fillRect(px+20, py+6, 4, 4);
+
+    ctx.restore();
+}
+
+function render() {
+    ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Handle YouTube Video Sync
+    ytBoardsData.forEach(board => {
+        const el = document.getElementById(board.id);
+        if(el) {
+            if(gameState !== 'PLAY') { el.style.opacity = '0'; el.style.pointerEvents = 'none'; }
+            else { 
+                el.style.opacity = '1'; el.style.pointerEvents = 'auto'; 
+                el.style.transform = `translate(${board.x - camera.x}px, ${board.y - camera.y}px)`;
+            }
+        }
+    });
+
+    document.getElementById('cursor-ui').style.display = gameState === 'PLAY' ? 'flex' : 'none';
+
+    if (gameState === 'PLAY') {
+        drawWorld();
+        if (activeZonePrompt) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; ctx.fillRect(200, 500, 400, 40);
+            ctx.fillStyle = '#f1c40f'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.fillText(activeZonePrompt, 400, 525);
+        }
+    } 
+    // --- MINIGAME RENDERERS ---
+    else if (gameState === 'MINIGAME_PICKLEBALL') {
+        ctx.fillStyle = '#2980b9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#e74c3c'; ctx.fillRect(mgPickle.paddle.x, mgPickle.paddle.y, mgPickle.paddle.w, mgPickle.paddle.h);
+        ctx.beginPath(); ctx.arc(mgPickle.ball.x, mgPickle.ball.y, mgPickle.ball.r, 0, Math.PI*2); ctx.fillStyle = '#f1c40f'; ctx.fill();
+        ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'left'; ctx.fillText(`Volleys: ${mgPickle.score} | SPACE to Exit`, 20, 40);
+    } 
+    else if (gameState === 'MINIGAME_BASKETBALL') {
+        ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Hoop
+        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(400, 150, 50, 0, Math.PI); ctx.stroke();
+        
+        // Meter
+        ctx.fillStyle = '#34495e'; ctx.fillRect(200, 400, 400, 40);
+        ctx.fillStyle = '#2ecc71'; ctx.fillRect(350, 400, 100, 40); // Green Zone
+        ctx.fillStyle = 'white'; ctx.fillRect(mgBasket.meterX, 390, 10, 60); // Pointer
+        
+        ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center';
+        ctx.fillText("CLICK to shoot when in the green!", 400, 500);
+        ctx.fillText(`Score: ${mgBasket.score} | SPACE to Exit`, 400, 50);
+        if (mgBasket.result) { ctx.fillStyle = mgBasket.result === 'SWISH!' ? '#f1c40f' : '#e74c3c'; ctx.font = 'bold 40px Arial'; ctx.fillText(mgBasket.result, 400, 300); }
+    }
+    else if (gameState === 'MINIGAME_TARGET') {
+        ctx.fillStyle = mgTarget.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Moving Target
+        ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(mgTarget.targetX, mgTarget.targetY, mgTarget.targetRadius, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(mgTarget.targetX, mgTarget.targetY, mgTarget.targetRadius/2, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = 'white'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'left';
+        ctx.fillText(`${mgTarget.title} Training | Hits: ${mgTarget.score} | Time: ${Math.ceil(mgTarget.timer/60)}s`, 20, 40);
+        ctx.textAlign = 'center'; ctx.font = '16px Arial'; ctx.fillText("CLICK THE TARGET | SPACE TO EXIT", 400, 550);
+    }
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
