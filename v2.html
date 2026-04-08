@@ -8,7 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nunito:wght@400;700;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: radial-gradient(ellipse at top, #0d1b2a 0%, #1a252f 60%, #0d1b2a 100%);
+    background: radial-gradient(ellipse at top, #0d1b2a 0%, #1a252f 60%, #0d1b2a 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
     display: flex; justify-content: center; align-items: center; min-height: 100vh;
     font-family: 'Nunito', sans-serif; color: white; flex-direction: column; gap: 14px;
   }
@@ -23,6 +23,11 @@
     border: 3px solid rgba(255,255,255,0.15); border-radius: 12px;
     box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
     background: #1a252f; cursor: crosshair;
+  }
+  #game-container::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay; z-index: 999;
   }
   canvas { position: absolute; top: 0; left: 0; }
   .billboard {
@@ -151,7 +156,47 @@ setCursor('🎾', document.querySelector('.cursor-btn.active'));
 
 // ─── CANVAS SETUP ────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+
+// --- PROCEDURAL TEXTURES ---
+const textures = {};
+function initTextures() {
+  const mkCanvas = (s) => { const c=document.createElement('canvas'); c.width=c.height=s; return [c, c.getContext('2d')]; };
+  const [cg, ctxg] = mkCanvas(128);
+  ctxg.fillStyle = '#4a7c3f'; ctxg.fillRect(0,0,128,128);
+  for(let i=0;i<400;i++){
+    ctxg.fillStyle = Math.random()>0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+    ctxg.fillRect(Math.random()*128,Math.random()*128,2,Math.random()*6+2);
+  }
+  textures.grass = ctx.createPattern(cg, 'repeat');
+  const [cp, ctxp] = mkCanvas(128);
+  ctxp.fillStyle = '#8e9eab'; ctxp.fillRect(0,0,128,128);
+  for(let i=0;i<1000;i++){
+    ctxp.fillStyle = `rgba(${Math.random()*50},${Math.random()*50},${Math.random()*50},0.05)`;
+    ctxp.fillRect(Math.random()*128,Math.random()*128,1,1);
+  }
+  textures.pavement = ctx.createPattern(cp, 'repeat');
+  const [cw, ctxw] = mkCanvas(256);
+  ctxw.fillStyle = '#c8832c'; ctxw.fillRect(0,0,256,256);
+  ctxw.strokeStyle = 'rgba(0,0,0,0.05)';
+  for(let i=0;i<256;i+=4){
+    ctxw.lineWidth = Math.random()*2+1;
+    ctxw.beginPath(); ctxw.moveTo(i,0); ctxw.lineTo(i+Math.random()*10-5,256); ctxw.stroke();
+  }
+  for(let i=0;i<256;i+=32){
+    ctxw.strokeStyle='rgba(0,0,0,0.2)'; ctxw.lineWidth=1;
+    ctxw.beginPath(); ctxw.moveTo(i,0); ctxw.lineTo(i,256); ctxw.stroke();
+  }
+  textures.wood = ctx.createPattern(cw, 'repeat');
+  const [cb, ctxb] = mkCanvas(128);
+  ctxb.fillStyle = '#1e6fa0'; ctxb.fillRect(0,0,128,128);
+  for(let i=0;i<800;i++){ ctxb.fillStyle = 'rgba(255,255,255,0.03)'; ctxb.fillRect(Math.random()*128,Math.random()*128,2,2); }
+  textures.courtBlue = ctx.createPattern(cb, 'repeat');
+  const [cr, ctxr] = mkCanvas(128);
+  ctxr.fillStyle = '#c0392b'; ctxr.fillRect(0,0,128,128);
+  for(let i=0;i<800;i++){ ctxr.fillStyle = 'rgba(0,0,0,0.04)'; ctxr.fillRect(Math.random()*128,Math.random()*128,2,2); }
+  textures.courtRed = ctx.createPattern(cr, 'repeat');
+}
+initTextures();
 
 // ─── WORLD CONSTANTS ─────────────────────────────────────
 const WW = 2400, WH = 1800;
@@ -227,6 +272,7 @@ const zones = [
   { x:80,y:295,w:110,h:58,type:'modal',prompt:'Press SPACE to view BPC Sign-Ups' },
   { x:940,y:105,w:510,h:310,type:'minigame',game:'BASKETBALL',label:'FREE THROW CHALLENGE',color:'#d35400',prompt:'Press SPACE to play Basketball Free Throws' },
   { x:1680,y:105,w:620,h:310,type:'minigame',game:'SOCCER',label:'PENALTY SHOOTOUT',color:'#27ae60',prompt:'Press SPACE for Soccer Penalty Shootout' },
+const ctx = canvas.getContext('2d');
   { x:90,y:720,w:620,h:310,type:'minigame',game:'LACROSSE',label:'CATCH DRILL',color:'#1abc9c',prompt:'Press SPACE to play Lacrosse Catch Drill' },
   { x:1680,y:720,w:620,h:310,type:'minigame',game:'FIELDHOCKEY',label:'DRAG-FLICK DRILL',color:'#2980b9',prompt:'Press SPACE for Field Hockey Drag-Flick' },
 ];
@@ -575,10 +621,10 @@ function drawWorld() {
   ctx.translate(-camera.x, -camera.y);
 
   // === BASE GROUND ===
-  ctx.fillStyle='#4a7c3f'; ctx.fillRect(0,0,WW,WH);
+  ctx.fillStyle=textures.grass; ctx.fillRect(0,0,WW,WH);
 
   // === PATHWAYS ===
-  ctx.fillStyle='#8e9eab';
+  ctx.fillStyle=textures.pavement;
   ctx.fillRect(0,455,WW,110); // main horizontal
   ctx.fillRect(1145,0,110,WH); // main vertical
   // path detail dashes
@@ -607,9 +653,9 @@ function drawWorld() {
   // Grass texture
   for(let i=0;i<800;i+=30) { ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,455); ctx.stroke(); }
   // Court surface
-  ctx.fillStyle='#1e6fa0'; ctx.fillRect(190,245,430,215);
+  ctx.fillStyle=textures.courtBlue; ctx.fillRect(190,245,430,215);
   // Kitchen zone
-  ctx.fillStyle='#c0392b'; ctx.fillRect(290,245,220,70);
+  ctx.fillStyle=textures.courtRed; ctx.fillRect(290,245,220,70);
   ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(290,315,220,145);
   // Court lines
   ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.setLineDash([]);
@@ -639,7 +685,7 @@ function drawWorld() {
   // Crowd bleachers effect
   for(let i=0;i<8;i++){ctx.fillStyle=`rgba(255,255,255,${0.02+i*0.005})`;ctx.fillRect(800,i*5,800,5);}
   // Hardwood floor
-  ctx.fillStyle='#c8832c'; ctx.fillRect(940,100,520,310);
+  ctx.fillStyle=textures.wood; ctx.fillRect(940,100,520,310);
   // Hardwood planks
   ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1;
   for(let ln=940;ln<1460;ln+=22){ctx.beginPath();ctx.moveTo(ln,100);ctx.lineTo(ln,410);ctx.stroke();}
@@ -998,7 +1044,7 @@ function drawPickleMinigame() {
 // ── DRAW BASKETBALL MINIGAME ──────────────────────────────
 function drawBballMinigame() {
   // Court
-  ctx.fillStyle='#c8832c'; ctx.fillRect(0,0,800,600);
+  ctx.fillStyle=textures.wood; ctx.fillRect(0,0,800,600);
   for(let i=0;i<800;i+=22){ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,600);ctx.stroke();}
   // Backboard & hoop
   const mg=mgBball;
