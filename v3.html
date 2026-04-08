@@ -169,7 +169,7 @@
 </div>
 
 <div id="instructions">
-  Move: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &nbsp;|&nbsp; Interact / Play: <kbd>SPACE</kbd> &nbsp;|&nbsp; Exit Minigame: <kbd>ESC</kbd>
+  Move: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &nbsp;|&nbsp; Interact / Play: <kbd>SPACE</kbd> &nbsp;|&nbsp; Exit Minigame: <kbd>ESC</kbd> &nbsp;|&nbsp; Settings: <kbd>TAB</kbd> &nbsp;|&nbsp; Skill Tree: <kbd>M</kbd>
 </div>
 
 <script>
@@ -361,7 +361,17 @@ let globalTick = 0;
 const camera = { x: 0, y: 0 };
 
 // ─── PLAYER ──────────────────────────────────────────────
-const player = { x: 1200, y: 1350, w: 28, h: 28, speed: 5, color: '#e74c3c', facing: 'down', type: 'player', name: 'You', skills: { PICKLEBALL: 0, BASKETBALL: 0, SOCCER: 0, LACROSSE: 0, FIELDHOCKEY: 0 } };
+const player = {
+  x: 1200, y: 1350, w: 28, h: 28, speed: 5, color: '#e74c3c', facing: 'down', type: 'player', name: 'You',
+  skills: { PICKLEBALL: 0, BASKETBALL: 0, SOCCER: 0, LACROSSE: 0, FIELDHOCKEY: 0 },
+  difficulty: 'Beginner',
+  skillPoints: 0,
+  quests: [
+    { id: 'q1', desc: 'Complete 2 Quizzes', target: 2, progress: 0, done: false, reward: 2 },
+    { id: 'q2', desc: 'Play 3 Minigames', target: 3, progress: 0, done: false, reward: 3 },
+    { id: 'q3', desc: 'Unlock an Area', target: 1, progress: 0, done: false, reward: 5 }
+  ]
+};
 
 // ─── INPUT ───────────────────────────────────────────────
 const keys = {};
@@ -401,46 +411,118 @@ const bots = [
 const npcs = [
   { x:340,y:200,w:28,h:28,color:'#ecf0f1',name:'Coach Taylah',cap:'#e67e22',facing:'down', type:'coach', sport:'PICKLEBALL',
     dialogue:['Welcome to Pickleball! The kitchen (red zone) is off limits for volleys.','Step onto the blue court and press SPACE to start the volley drill!'],
-    quizzes: [
-      { t: 'Pickleball courts have a 7-foot area on both sides of the net known as the Non-Volley Zone. Most people call it "The Kitchen".', q: 'What is the non-volley zone called?', options: ['The Kitchen', 'The Box', 'The Crease'], answer: 0 },
-      { t: 'You cannot hit the ball out of the air (volley) while standing in the kitchen. It must bounce first.', q: 'Can you volley while standing in the kitchen?', options: ['Yes', 'No', 'Only on serves'], answer: 1 },
-      { t: 'Games are typically played to 11 points, and you must win by 2. Tournament games might go to 15 or 21.', q: 'What score is a pickleball game usually played to?', options: ['11', '15', '21'], answer: 0 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'Pickleball courts have a 7-foot area on both sides of the net known as the Non-Volley Zone. Most people call it "The Kitchen".', q: 'What is the non-volley zone called?', options: ['The Kitchen', 'The Box', 'The Crease'], answer: 0 },
+        { t: 'You cannot hit the ball out of the air (volley) while standing in the kitchen. It must bounce first.', q: 'Can you volley while standing in the kitchen?', options: ['Yes', 'No', 'Only on serves'], answer: 1 },
+        { t: 'Games are typically played to 11 points, and you must win by 2. Tournament games might go to 15 or 21.', q: 'What score is a pickleball game usually played to?', options: ['11', '15', '21'], answer: 0 }
+      ],
+      'Intermediate': [
+        { t: 'If the ball hits the line, it is considered in, except for the kitchen line on a serve.', q: 'Is a ball landing on the baseline considered in?', options: ['Yes', 'No', 'Only on serve'], answer: 0 },
+        { t: 'A dink is a soft shot hit on a bounce from the NVZ intended to arc over the net and land within the opposing NVZ.', q: 'What is a soft shot that lands in the kitchen called?', options: ['Drop', 'Dink', 'Lob'], answer: 1 },
+        { t: 'You can only score points when your team is serving. If you win a rally while receiving, you earn the right to serve.', q: 'When can you score a point in traditional scoring?', options: ['Any time', 'Only when serving', 'Only when receiving'], answer: 1 }
+      ],
+      'Advanced': [
+        { t: 'An Erne is an advanced shot where a player hits the ball in the air while jumping outside the kitchen boundaries.', q: 'Jumping around the kitchen to hit a volley is called an:', options: ['Erne', 'Bert', 'ATP'], answer: 0 },
+        { t: 'An ATP (Around the Post) is a legal shot where the ball travels outside the net post and lands in the opponent\'s court.', q: 'Is an Around the Post (ATP) shot legal?', options: ['Yes', 'No', 'Only in singles'], answer: 0 },
+        { t: 'Stacking is a strategy where players line up on the same side of the court before the serve or return to keep players on their preferred sides.', q: 'What is the strategy of lining up on the same side called?', options: ['Stacking', 'Switching', 'Poaching'], answer: 0 }
+      ]
+    } },
   { x:110,y:370,w:28,h:28,color:'#ecf0f1',name:'Coach Shirley',cap:'#9b59b6',facing:'right', type:'coach', sport:'PICKLEBALL',
     dialogue:['Have you joined the Brisbane Pickleball Club?','Check the red board to your left for sign-ups!'],
-    quizzes: [
-      { t: 'When serving, both feet must remain behind the baseline until the ball is struck.', q: 'Where do you serve from?', options: ['Baseline', 'Kitchen line', 'Sideline'], answer: 0 },
-      { t: 'If a serve hits the net cord but still lands in the correct service box, it is called a "Let" and the server gets to re-serve.', q: 'What happens if a serve hits the net but lands in?', options: ['Fault', 'Let (Re-serve)', 'Play continues'], answer: 1 },
-      { t: 'The "Two-Bounce Rule": The serve must bounce, and the return must bounce. Only then can volleys begin.', q: 'What must the ball do before you can volley?', options: ['Bounce once on each side', 'Bounce twice', 'Nothing'], answer: 0 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'When serving, both feet must remain behind the baseline until the ball is struck.', q: 'Where do you serve from?', options: ['Baseline', 'Kitchen line', 'Sideline'], answer: 0 },
+        { t: 'If a serve hits the net cord but still lands in the correct service box, it is called a "Let" and the server gets to re-serve.', q: 'What happens if a serve hits the net but lands in?', options: ['Fault', 'Let (Re-serve)', 'Play continues'], answer: 1 },
+        { t: 'The "Two-Bounce Rule": The serve must bounce, and the return must bounce. Only then can volleys begin.', q: 'What must the ball do before you can volley?', options: ['Bounce once on each side', 'Bounce twice', 'Nothing'], answer: 0 }
+      ],
+      'Intermediate': [
+        { t: 'A lob is a shot hit high in the air, usually deep into the opponent’s court, to force them backward.', q: 'What is a high, deep shot called?', options: ['Lob', 'Drive', 'Dink'], answer: 0 },
+        { t: 'A poach is when a player crosses over into their partner’s side of the court to hit a volley.', q: 'Hitting a ball on your partner’s side is called:', options: ['Poaching', 'Stealing', 'Crossing'], answer: 0 },
+        { t: 'If you step on the kitchen line while hitting a volley, it is a fault, even if your momentum carries you in after the shot.', q: 'Can your momentum carry you into the kitchen after a volley?', options: ['Yes', 'No', 'Only if you don\'t fall'], answer: 1 }
+      ],
+      'Advanced': [
+        { t: 'A third shot drop is a soft shot hit on the third shot of the rally, intended to land in the opponent\'s kitchen, allowing the serving team to move to the net.', q: 'What is the strategic soft shot hit after the return of serve called?', options: ['Third shot drop', 'First shot dink', 'Fifth shot lob'], answer: 0 },
+        { t: 'When blocking a hard drive, you should absorb the pace rather than swinging back.', q: 'How should you generally handle a hard drive?', options: ['Swing harder', 'Block and absorb', 'Jump away'], answer: 1 },
+        { t: 'In rally scoring, a point is scored on every rally regardless of who served, but traditional scoring is more common in tournaments.', q: 'In rally scoring, when do you score a point?', options: ['Only when serving', 'Only when receiving', 'On every rally won'], answer: 2 }
+      ]
+    } },
   { x:1160,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach MJ',cap:'#d35400',facing:'down', type:'coach', sport:'BASKETBALL',
     dialogue:['Welcome to the Hardwood! Basketball is 80% mental, 20% physical.','Head to centre court and press SPACE to take your free throws!'],
-    quizzes: [
-      { t: 'A free throw is an unopposed attempt to score points from the free-throw line, and is worth exactly 1 point.', q: 'How many points is a free throw worth?', options: ['1', '2', '3'], answer: 0 },
-      { t: 'A double dribble is an illegal move where a player dribbles with both hands at once, or stops dribbling and then starts again.', q: 'What is a double dribble?', options: ['Dribbling with two hands', 'Dribbling twice', 'Both'], answer: 2 },
-      { t: 'The rim of the basketball hoop is exactly 10 feet off the ground in professional, college, and high school basketball.', q: 'How high is a regulation basketball hoop?', options: ['9 feet', '10 feet', '11 feet'], answer: 1 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'A free throw is an unopposed attempt to score points from the free-throw line, and is worth exactly 1 point.', q: 'How many points is a free throw worth?', options: ['1', '2', '3'], answer: 0 },
+        { t: 'A double dribble is an illegal move where a player dribbles with both hands at once, or stops dribbling and then starts again.', q: 'What is a double dribble?', options: ['Dribbling with two hands', 'Dribbling twice', 'Both'], answer: 2 },
+        { t: 'The rim of the basketball hoop is exactly 10 feet off the ground in professional, college, and high school basketball.', q: 'How high is a regulation basketball hoop?', options: ['9 feet', '10 feet', '11 feet'], answer: 1 }
+      ],
+      'Intermediate': [
+        { t: 'A player has 3 seconds to stay inside the key (painted area) while their team has possession of the ball.', q: 'How long can an offensive player stand in the key?', options: ['3 seconds', '5 seconds', '10 seconds'], answer: 0 },
+        { t: 'A standard basketball game is divided into quarters. The NBA plays 12-minute quarters, while FIBA plays 10-minute quarters.', q: 'How many quarters are in a standard basketball game?', options: ['2', '3', '4'], answer: 2 },
+        { t: 'A travel occurs when a player moves their pivot foot illegally or takes too many steps without dribbling.', q: 'Taking too many steps without dribbling is called a:', options: ['Travel', 'Carry', 'Foul'], answer: 0 }
+      ],
+      'Advanced': [
+        { t: 'A pick-and-roll is an offensive play where a player sets a screen (pick) for a teammate handling the ball and then moves toward the basket (roll).', q: 'What is the play where a screener moves to the basket?', options: ['Pick and Pop', 'Pick and Roll', 'Give and Go'], answer: 1 },
+        { t: 'A team has 24 seconds to attempt a shot in the NBA and FIBA. If the ball hits the rim, the shot clock resets to 14 seconds.', q: 'What does the shot clock reset to after hitting the rim (NBA/FIBA)?', options: ['14 seconds', '24 seconds', '10 seconds'], answer: 0 },
+        { t: 'A technical foul is assessed for unsportsmanlike conduct or rules infractions, resulting in free throws and possession for the other team.', q: 'What kind of foul is given for unsportsmanlike conduct?', options: ['Personal', 'Flagrant', 'Technical'], answer: 2 }
+      ]
+    } },
   { x:1960,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach Mia',cap:'#27ae60',facing:'down', type:'coach', sport:'SOCCER',
     dialogue:['Olá! The beautiful game awaits.','Step onto the pitch and press SPACE for a penalty shootout!'],
-    quizzes: [
-      { t: 'The goalkeeper is the only player allowed to use their hands, but strictly only inside their own penalty box.', q: 'Can a goalkeeper touch the ball with their hands outside the penalty area?', options: ['Yes', 'No', 'Only on goal kicks'], answer: 1 },
-      { t: 'If a player commits a serious foul, they are shown a red card and are instantly ejected from the match. Their team must play a man down.', q: 'What happens when a player receives a red card?', options: ['Warning', 'Substituted', 'Ejected'], answer: 2 },
-      { t: 'A standard professional soccer match consists of two 45-minute halves, making a total of 90 minutes plus stoppage time.', q: 'How long is a standard soccer match?', options: ['60 mins', '90 mins', '120 mins'], answer: 1 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'The goalkeeper is the only player allowed to use their hands, but strictly only inside their own penalty box.', q: 'Can a goalkeeper touch the ball with their hands outside the penalty area?', options: ['Yes', 'No', 'Only on goal kicks'], answer: 1 },
+        { t: 'If a player commits a serious foul, they are shown a red card and are instantly ejected from the match. Their team must play a man down.', q: 'What happens when a player receives a red card?', options: ['Warning', 'Substituted', 'Ejected'], answer: 2 },
+        { t: 'A standard professional soccer match consists of two 45-minute halves, making a total of 90 minutes plus stoppage time.', q: 'How long is a standard soccer match?', options: ['60 mins', '90 mins', '120 mins'], answer: 1 }
+      ],
+      'Intermediate': [
+        { t: 'A player is in an offside position if they are nearer to the opponents\' goal line than both the ball and the second-last opponent when the ball is played to them.', q: 'What rule prevents attacking players from goal hanging?', options: ['Offside', 'Icing', 'Encroachment'], answer: 0 },
+        { t: 'A throw-in is awarded to the opponents of the player who last touched the ball when the whole of the ball passes over the touchline.', q: 'How is play restarted when the ball goes out over the sidelines?', options: ['Corner kick', 'Goal kick', 'Throw-in'], answer: 2 },
+        { t: 'A direct free kick is awarded if a player commits a foul like tripping or pushing. A goal can be scored directly from this kick.', q: 'Can a goal be scored straight from a direct free kick?', options: ['Yes', 'No', 'Only if touched by another player'], answer: 0 }
+      ],
+      'Advanced': [
+        { t: 'VAR stands for Video Assistant Referee. It is used to review decisions regarding goals, penalties, direct red cards, and mistaken identity.', q: 'What does VAR stand for?', options: ['Virtual Action Replay', 'Video Assistant Referee', 'Visual Aid Referee'], answer: 1 },
+        { t: 'The advantage rule allows play to continue when a foul occurs, if stopping play would benefit the team that committed the foul.', q: 'Which rule lets play continue after a foul to benefit the fouled team?', options: ['Advantage', 'Play-on', 'Free-kick'], answer: 0 },
+        { t: 'If a direct free kick foul is committed by a player within their own penalty area, a penalty kick is awarded.', q: 'What is given for a direct foul in the penalty box?', options: ['Free kick', 'Penalty kick', 'Drop ball'], answer: 1 }
+      ]
+    } },
   { x:390,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Paul',cap:'#1abc9c',facing:'right', type:'coach', sport:'LACROSSE',
     dialogue:['Lacrosse — fastest sport on two feet!','Attackers cannot enter the circular crease. Use the catch drill to warm up!'],
-    quizzes: [
-      { t: 'The goal is surrounded by a circle known as the crease, which protects the goalie.', q: 'What is the circle around the goal called?', options: ['The Box', 'The Crease', 'The Zone'], answer: 1 },
-      { t: 'In men\'s field lacrosse, each team fields 10 players on the field at a time: 1 goalie, 3 defenders, 3 midfielders, and 3 attackers.', q: 'How many players are on a men\'s field lacrosse team?', options: ['10', '11', '12'], answer: 0 },
-      { t: 'The crease belongs to the goalie. Attackers are strictly forbidden from stepping inside the crease at any time.', q: 'Can an attacker step in the crease?', options: ['Yes', 'No', 'Only after shooting'], answer: 1 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'The goal is surrounded by a circle known as the crease, which protects the goalie.', q: 'What is the circle around the goal called?', options: ['The Box', 'The Crease', 'The Zone'], answer: 1 },
+        { t: 'In men\'s field lacrosse, each team fields 10 players on the field at a time: 1 goalie, 3 defenders, 3 midfielders, and 3 attackers.', q: 'How many players are on a men\'s field lacrosse team?', options: ['10', '11', '12'], answer: 0 },
+        { t: 'The crease belongs to the goalie. Attackers are strictly forbidden from stepping inside the crease at any time.', q: 'Can an attacker step in the crease?', options: ['Yes', 'No', 'Only after shooting'], answer: 1 }
+      ],
+      'Intermediate': [
+        { t: 'A face-off is used to start the game and after each goal. Two players battle for the ball at the center line.', q: 'How is play restarted after a goal?', options: ['Throw-in', 'Face-off', 'Goal kick'], answer: 1 },
+        { t: 'Slashing is a penalty where a player swings their stick and strikes an opponent aggressively on a non-legal area.', q: 'Hitting an opponent illegally with the stick is called:', options: ['Slashing', 'Hooking', 'Checking'], answer: 0 },
+        { t: 'A lacrosse game is typically divided into four quarters, just like basketball and American football.', q: 'How many periods are in a standard lacrosse game?', options: ['2 halves', '3 periods', '4 quarters'], answer: 2 }
+      ],
+      'Advanced': [
+        { t: 'Cradling is the motion used to keep the ball in the pocket of the stick using centrifugal force.', q: 'What is the motion of twisting the stick to keep the ball in the pocket?', options: ['Rocking', 'Cradling', 'Rolling'], answer: 1 },
+        { t: 'An offsides penalty occurs if a team does not have at least four players on its defensive half of the field or three players on its offensive half.', q: 'How many players must stay in the defensive half to avoid offsides?', options: ['3', '4', '5'], answer: 1 },
+        { t: 'A man-up or man-down situation occurs when a player is serving time in the penalty box for a technical or personal foul.', q: 'What is it called when a team has an extra player due to a penalty?', options: ['Power play', 'Man-up', 'Advantage'], answer: 1 }
+      ]
+    } },
   { x:1960,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Lexi',cap:'#2980b9',facing:'left', type:'coach', sport:'FIELDHOCKEY',
     dialogue:['Field Hockey — pure skill and stamina.','You must be inside the striking circle to score. Try the drag-flick drill!'],
-    quizzes: [
-      { t: 'A field hockey stick has a flat side and a rounded side. Players are only permitted to hit the ball with the flat side.', q: 'Which side of the stick can you use?', options: ['Flat side', 'Rounded side', 'Both'], answer: 0 },
-      { t: 'To score a valid goal in field hockey, the ball must be struck from inside the 16-yard semi-circle called the striking circle.', q: 'Where must you be to score a goal?', options: ['Inside the striking circle', 'Anywhere', 'Penalty spot'], answer: 0 },
-      { t: 'Only the goalkeeper is allowed to intentionally use their feet or body to block and kick the ball.', q: 'Can you use your feet to kick the ball?', options: ['Yes', 'No', 'Only the goalie'], answer: 2 }
-    ] },
+    quizzes: {
+      'Beginner': [
+        { t: 'A field hockey stick has a flat side and a rounded side. Players are only permitted to hit the ball with the flat side.', q: 'Which side of the stick can you use?', options: ['Flat side', 'Rounded side', 'Both'], answer: 0 },
+        { t: 'To score a valid goal in field hockey, the ball must be struck from inside the 16-yard semi-circle called the striking circle.', q: 'Where must you be to score a goal?', options: ['Inside the striking circle', 'Anywhere', 'Penalty spot'], answer: 0 },
+        { t: 'Only the goalkeeper is allowed to intentionally use their feet or body to block and kick the ball.', q: 'Can you use your feet to kick the ball?', options: ['Yes', 'No', 'Only the goalie'], answer: 2 }
+      ],
+      'Intermediate': [
+        { t: 'Players are not allowed to shield the ball from an opponent using their body or stick. This is called obstruction.', q: 'Shielding the ball with your body is called:', options: ['Obstruction', 'Blocking', 'Guarding'], answer: 0 },
+        { t: 'A penalty corner is awarded for a defensive foul inside the shooting circle. Attackers push the ball out from the backline to take a shot.', q: 'What is awarded for a defensive foul in the circle?', options: ['Penalty stroke', 'Penalty corner', 'Free hit'], answer: 1 },
+        { t: 'You cannot intentionally raise the ball into the air on a hit, except for a shot on goal. This is considered dangerous play.', q: 'Can you intentionally lift the ball anywhere on the field?', options: ['Yes', 'No', 'Only on passes'], answer: 1 }
+      ],
+      'Advanced': [
+        { t: 'A penalty stroke is a shot taken from 7 yards out against just the goalkeeper, awarded for a foul that prevents a probable goal.', q: 'What is given for a foul preventing a probable goal?', options: ['Penalty corner', 'Penalty stroke', 'Free hit'], answer: 1 },
+        { t: 'The auto-pass rule allows a player to immediately start dribbling from a free hit without passing to a teammate first.', q: 'Which rule lets you dribble directly from a free hit?', options: ['Quick start', 'Auto-pass', 'Self-play'], answer: 1 },
+        { t: 'The stick cannot be raised above the shoulder level at any time, even during the backswing or follow-through.', q: 'How high can the stick be raised?', options: ['Knee height', 'Waist height', 'Shoulder height'], answer: 2 }
+      ]
+    } },
 ];
 
 // ─── STATIC BILLBOARDS / SIGNS ───────────────────────────
@@ -486,7 +568,7 @@ function handleInteraction() {
     for (const npc of npcs) {
       if (Math.hypot(player.x-npc.x, player.y-npc.y) < 55) {
         activeNPC = npc;
-        if (npc.type === 'coach' && player.skills[npc.sport] < npc.quizzes.length) {
+        if (npc.type === 'coach' && player.skills[npc.sport] < npc.quizzes[player.difficulty].length) {
           gameState = 'TEACH';
         } else {
           curDlg = npc.dialogue; dlgIdx = 0; gameState = 'DIALOGUE';
@@ -503,9 +585,52 @@ function handleInteraction() {
 let quizFeedback = '';
 
 function handleMouseDown(e) {
+  if (gameState === 'SETTINGS') {
+    if (mouseX > 250 && mouseX < 550 && mouseY > 200 && mouseY < 250) player.difficulty = 'Beginner';
+    if (mouseX > 250 && mouseX < 550 && mouseY > 270 && mouseY < 320) player.difficulty = 'Intermediate';
+    if (mouseX > 250 && mouseX < 550 && mouseY > 340 && mouseY < 390) player.difficulty = 'Advanced';
+    if (mouseX > 350 && mouseX < 450 && mouseY > 420 && mouseY < 460) gameState = 'PLAY';
+    return;
+  }
+  if (gameState === 'SKILLS') {
+    if (mouseX > 350 && mouseX < 450 && mouseY > 460 && mouseY < 500) { gameState = 'PLAY'; return; }
+
+    // Check nodes
+    const nodes = [
+      { id: 'speed1', x: 250, y: 300, cost: 2, req: null, action: () => { player.speed += 1; } },
+      { id: 'speed2', x: 250, y: 150, cost: 3, req: 'speed1', action: () => { player.speed += 1; } },
+      { id: 'soccer', x: 400, y: 250, cost: 5, req: null, action: () => { player.unlockedSoccer = true; } },
+      { id: 'fh', x: 550, y: 250, cost: 5, req: 'soccer', action: () => { player.unlockedFH = true; } }
+    ];
+
+    nodes.forEach(n => {
+      if (Math.hypot(mouseX - n.x, mouseY - n.y) < 30) {
+        if (!player.skillTree) player.skillTree = {};
+        if (player.skillTree[n.id]) return; // already unlocked
+        if (n.req && !player.skillTree[n.req]) return; // prerequisite missing
+        if (player.skillPoints >= n.cost) {
+          player.skillPoints -= n.cost;
+          player.skillTree[n.id] = true;
+          n.action();
+          // Check for quest 3
+          if (n.id === 'soccer' || n.id === 'fh') {
+            let q3 = player.quests.find(q=>q.id==='q3');
+            if (q3 && !q3.done) {
+              q3.progress++;
+              if (q3.progress >= q3.target) {
+                q3.done = true;
+                player.skillPoints += q3.reward;
+              }
+            }
+          }
+        }
+      }
+    });
+    return;
+  }
   if (gameState === 'TEACH') {
     const quizIdx = player.skills[activeNPC.sport];
-    const quiz = activeNPC.quizzes[quizIdx];
+    const quiz = activeNPC.quizzes[player.difficulty][quizIdx];
     // Check if Continue button clicked
     if (mouseX > 300 && mouseX < 500 && mouseY > 420 && mouseY < 470) {
       gameState = 'QUIZ';
@@ -515,7 +640,7 @@ function handleMouseDown(e) {
   if (gameState === 'QUIZ') {
     if (quizFeedback) return; // Prevent clicking while showing feedback
     const quizIdx = player.skills[activeNPC.sport];
-    const quiz = activeNPC.quizzes[quizIdx];
+    const quiz = activeNPC.quizzes[player.difficulty][quizIdx];
     // Re-calculate the startY based on question length just like in drawQuizUI
     ctx.font='18px Nunito,sans-serif';
     const words = quiz.q.split(' '); let line = ''; let y = 210;
@@ -530,9 +655,12 @@ function handleMouseDown(e) {
       const by = startY + i * 55;
       if (mouseX > 180 && mouseX < 620 && mouseY > by && mouseY < by + 45) {
         if (i === quiz.answer) {
-          quizFeedback = 'CORRECT! +1 Skill';
+          quizFeedback = 'CORRECT! +1 Skill, +1 SP';
           setTimeout(() => {
             player.skills[activeNPC.sport]++;
+            player.skillPoints++; // Give 1 SP for every correct answer
+            let q1 = player.quests.find(q=>q.id==='q1');
+            if (q1 && !q1.done) { q1.progress++; if (q1.progress>=q1.target) { q1.done = true; player.skillPoints+=q1.reward; } }
             quizFeedback = '';
             gameState = 'PLAY';
             activeNPC = null;
@@ -560,6 +688,8 @@ function handleMouseUp(e) {
 
 function startMinigame(name) {
   gameState = name;
+  let q2 = player.quests.find(q=>q.id==='q2');
+  if (q2 && !q2.done) { q2.progress++; if (q2.progress>=q2.target) { q2.done = true; player.skillPoints+=q2.reward; } }
   switch(name) {
     case 'PICKLEBALL': mgPickle.score=0; mgPickle.ball.x=400; mgPickle.ball.y=100; mgPickle.ball.vy=4; mgPickle.ball.vx=(Math.random()>0.5?4:-4); break;
     case 'BASKETBALL': mgBball.ball.x=140;mgBball.ball.y=390;mgBball.ball.active=false;mgBball.ball.vx=0;mgBball.ball.vy=0; mgBball.power=0;mgBball.powerCharging=false;mgBball.score=0;mgBball.shots=0;mgBball.done=false;mgBball.result='';mgBball.shotResult=''; break;
@@ -603,10 +733,20 @@ function update() {
   if (gameState === 'PLAY' || gameState === 'DIALOGUE') {
     if (gameState === 'PLAY') {
       const spd = player.speed;
-      if ((keys['w']||keys['arrowup']) && player.y>0) { player.y-=spd; player.facing='up'; }
-      if ((keys['s']||keys['arrowdown']) && player.y<WH-player.h) { player.y+=spd; player.facing='down'; }
-      if ((keys['a']||keys['arrowleft']) && player.x>0) { player.x-=spd; player.facing='left'; }
-      if ((keys['d']||keys['arrowright']) && player.x<WW-player.w) { player.x+=spd; player.facing='right'; }
+      let nextX = player.x, nextY = player.y;
+      if ((keys['w']||keys['arrowup']) && player.y>0) { nextY-=spd; player.facing='up'; }
+      if ((keys['s']||keys['arrowdown']) && player.y<WH-player.h) { nextY+=spd; player.facing='down'; }
+      if ((keys['a']||keys['arrowleft']) && player.x>0) { nextX-=spd; player.facing='left'; }
+      if ((keys['d']||keys['arrowright']) && player.x<WW-player.w) { nextX+=spd; player.facing='right'; }
+
+      // Collision with locked areas
+      let canMove = true;
+      if (nextX > 1600 && nextY < 455 && (!player.skillTree || !player.skillTree['soccer'])) canMove = false;
+      if (nextX > 1600 && nextY > 565 && (!player.skillTree || !player.skillTree['fh'])) canMove = false;
+
+      if (canMove) { player.x = nextX; player.y = nextY; }
+      if (keys['tab']) { gameState = 'SETTINGS'; keys['tab'] = false; }
+      if (keys['m']) { gameState = 'SKILLS'; keys['m'] = false; }
     }
     camera.x = Math.max(0, Math.min(player.x - 400, WW-800));
     camera.y = Math.max(0, Math.min(player.y - 300, WH-600));
@@ -780,6 +920,13 @@ function drawWorld() {
   drawScoreboard(2290,90,'SOCCER','#27ae60');
   drawTree(1620,30); drawTree(2360,30); drawTree(1620,400); drawTree(2360,400); drawBench(1710,420,false); drawBench(2200,420,false);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('SOCCER',2000,55);
+  if (!player.skillTree || !player.skillTree['soccer']) {
+    ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(1600,0,800,455);
+    ctx.fillStyle='#e74c3c'; ctx.font='bold 40px Black Han Sans,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('LOCKED', 2000, 227);
+    ctx.font='18px Nunito,sans-serif'; ctx.fillStyle='white';
+    ctx.fillText('Unlock via Skill Tree (Press M)', 2000, 260);
+  }
 
   drawOrganicZone(400, 1082, 400, '#1abc9c');
   for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(i*100,565,100,1035);}
@@ -800,6 +947,13 @@ function drawWorld() {
   drawScoreboard(2290,715,'FIELD HOCKEY','#2980b9');
   drawTree(1620,580); drawTree(2360,580); drawTree(1620,1050); drawTree(2360,1050); drawBench(1710,1040,false); drawBench(2180,1040,false);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 40px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('FIELD HOCKEY',2000,660);
+  if (!player.skillTree || !player.skillTree['fh']) {
+    ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(1600,565,800,1035);
+    ctx.fillStyle='#e74c3c'; ctx.font='bold 40px Black Han Sans,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('LOCKED', 2000, 870);
+    ctx.font='18px Nunito,sans-serif'; ctx.fillStyle='white';
+    ctx.fillText('Unlock via Skill Tree (Press M)', 2000, 903);
+  }
 
   const poles=[[110,240],[680,240],[940,90],[1470,90],[1700,90],[2320,90],[110,710],[680,710],[1700,710],[2320,710]];
   poles.forEach(([px,py])=>drawPole(px,py));
@@ -811,7 +965,7 @@ function drawWorld() {
 
   npcs.forEach(n=>{
     if (gameState!=='PLAY' && gameState!=='DIALOGUE') return;
-    if (player.skills[n.sport] < n.quizzes.length) {
+    if (n.type === 'coach' && player.skills[n.sport] < n.quizzes[player.difficulty].length) {
       drawTaskIndicator(n);
     }
   });
@@ -860,15 +1014,152 @@ function render() {
 
   document.getElementById('cursor-ui').style.display = inGame?'none':'flex';
 
-  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT' || gameState==='QUIZ' || gameState === 'TEACH') {
+  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT' || gameState==='QUIZ' || gameState === 'TEACH' || gameState === 'SETTINGS' || gameState === 'SKILLS') {
     drawWorld();
-    if (gameState==='PLAY') { drawSkillsHUD(); }
+    if (gameState==='PLAY') { drawSkillsHUD(); drawQuestsHUD(); }
     if (activePrompt && gameState==='PLAY') { const pw=Math.min(ctx.measureText(activePrompt).width+40,580); ctx.fillStyle='rgba(0,0,0,0.85)'; roundRect(ctx,400-pw/2,520,pw,36,18); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText(activePrompt,400,543); }
     if (!activePrompt && gameState==='PLAY' && npcs.some(n=>Math.hypot(player.x-n.x,player.y-n.y)<55)) { ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx,250,520,300,36,18); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText('Press SPACE to interact',400,543); }
     if (gameState==='DIALOGUE' && activeNPC) { ctx.fillStyle='rgba(0,0,0,0.88)'; roundRect(ctx,40,448,720,130,12); ctx.fill(); ctx.fillStyle=activeNPC.cap; ctx.fillRect(40,448,8,130); ctx.fillStyle=activeNPC.cap; ctx.font='bold 19px Black Han Sans,sans-serif'; ctx.textAlign='left'; ctx.fillText(activeNPC.name,60,476); ctx.fillStyle='white'; ctx.font='17px Nunito,sans-serif'; ctx.fillText(curDlg[dlgIdx],60,510); ctx.font='13px Nunito,sans-serif'; ctx.fillStyle='#bdc3c7'; ctx.fillText(`${dlgIdx+1}/${curDlg.length} — Press SPACE to continue`,490,562); }
     if (gameState==='TEACH') { drawTeachUI(); }
     if (gameState==='QUIZ') { drawQuizUI(); }
+    if (gameState==='SETTINGS') { drawSettingsUI(); }
+    if (gameState==='SKILLS') { drawSkillTreeUI(); }
   } else if (gameState==='PICKLEBALL') { drawPickleMinigame(); } else if (gameState==='BASKETBALL') { drawBballMinigame(); } else if (gameState==='SOCCER') { drawSoccerMinigame(); } else if (gameState==='LACROSSE') { drawLaxMinigame(); } else if (gameState==='FIELDHOCKEY') { drawFHMinigame(); }
+}
+
+function drawSkillTreeUI() {
+  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#fff';
+  roundRect(ctx, 100, 50, 600, 500, 20); ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle='#333'; ctx.font='bold 26px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Skill Tree', 400, 100);
+  ctx.fillStyle='#27ae60'; ctx.font='bold 18px Nunito,sans-serif';
+  ctx.fillText('Skill Points Available: ' + player.skillPoints, 400, 130);
+
+  const nodes = [
+    { id: 'speed1', label: 'Speed I', x: 250, y: 300, cost: 2, req: null },
+    { id: 'speed2', label: 'Speed II', x: 250, y: 150, cost: 3, req: 'speed1' },
+    { id: 'soccer', label: 'Unlock Soccer', x: 400, y: 250, cost: 5, req: null },
+    { id: 'fh', label: 'Unlock Field Hockey', x: 550, y: 250, cost: 5, req: 'soccer' }
+  ];
+
+  if (!player.skillTree) player.skillTree = {};
+
+  // Draw connections
+  ctx.lineWidth = 4;
+  nodes.forEach(n => {
+    if (n.req) {
+      const reqNode = nodes.find(rn => rn.id === n.req);
+      ctx.beginPath();
+      ctx.moveTo(reqNode.x, reqNode.y);
+      ctx.lineTo(n.x, n.y);
+      ctx.strokeStyle = player.skillTree[n.id] ? '#3498db' : '#e5e5e5';
+      ctx.stroke();
+    }
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    const isUnlocked = player.skillTree[n.id];
+    const isReqMet = !n.req || player.skillTree[n.req];
+    const isHover = mouseX > n.x - 30 && mouseX < n.x + 30 && mouseY > n.y - 30 && mouseY < n.y + 30;
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 30, 0, Math.PI * 2);
+    ctx.fillStyle = isUnlocked ? '#3498db' : (isReqMet ? (isHover ? '#ecf0f1' : '#fff') : '#bdc3c7');
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = isUnlocked ? '#2980b9' : (isReqMet ? '#95a5a6' : '#7f8c8d');
+    ctx.stroke();
+
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 12px Nunito,sans-serif';
+    ctx.fillText(n.label, n.x, n.y + 50);
+
+    if (!isUnlocked) {
+      ctx.fillStyle = isReqMet ? '#e67e22' : '#c0392b';
+      ctx.font = 'bold 14px Nunito,sans-serif';
+      ctx.fillText(n.cost + ' SP', n.x, n.y + 5);
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 16px Nunito,sans-serif';
+      ctx.fillText('✓', n.x, n.y + 6);
+    }
+  });
+
+  const isCloseHover = mouseX > 350 && mouseX < 450 && mouseY > 460 && mouseY < 500;
+  ctx.fillStyle = isCloseHover ? '#e74c3c' : '#c0392b';
+  roundRect(ctx, 350, 460, 100, 40, 12); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px Nunito,sans-serif';
+  ctx.fillText('Close', 400, 487);
+}
+
+function drawSettingsUI() {
+  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#fff';
+  roundRect(ctx, 200, 100, 400, 400, 20); ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle='#333'; ctx.font='bold 26px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Select Difficulty', 400, 150);
+
+  const levels = ['Beginner', 'Intermediate', 'Advanced'];
+  levels.forEach((lvl, i) => {
+    const y = 200 + i * 70;
+    const isHover = mouseX > 250 && mouseX < 550 && mouseY > y && mouseY < y + 50;
+    const isSelected = player.difficulty === lvl;
+
+    ctx.fillStyle = isSelected ? '#3498db' : (isHover ? '#f7f9fa' : '#fff');
+    ctx.strokeStyle = isSelected ? '#2980b9' : '#e5e5e5'; ctx.lineWidth = 3;
+    roundRect(ctx, 250, y, 300, 50, 12); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = isSelected ? '#fff' : '#333';
+    ctx.font = 'bold 20px Nunito,sans-serif';
+    ctx.fillText(lvl, 400, y + 33);
+  });
+
+  const isCloseHover = mouseX > 350 && mouseX < 450 && mouseY > 420 && mouseY < 460;
+  ctx.fillStyle = isCloseHover ? '#e74c3c' : '#c0392b';
+  roundRect(ctx, 350, 420, 100, 40, 12); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Close', 400, 447);
+}
+
+function drawQuestsHUD() {
+  ctx.save();
+  ctx.translate(canvas.width - 212, 12);
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  roundRect(ctx, 0, 0, 200, 110, 8);
+  ctx.fill();
+
+  ctx.fillStyle='#f1c40f';
+  ctx.font='bold 14px Black Han Sans,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('ACTIVE QUESTS', 100, 22);
+
+  ctx.textAlign='left';
+  player.quests.forEach((q, idx) => {
+    const y = 45 + idx * 25;
+    if (q.done) {
+      ctx.fillStyle = '#7f8c8d';
+      ctx.font = 'italic 11px Nunito,sans-serif';
+      ctx.fillText(`✓ ${q.desc}`, 12, y);
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px Nunito,sans-serif';
+      ctx.fillText(`- ${q.desc} (${q.progress}/${q.target})`, 12, y);
+    }
+  });
+  ctx.restore();
 }
 
 function drawSkillsHUD() {
@@ -919,7 +1210,7 @@ function drawSkillsHUD() {
 function drawTeachUI() {
   ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const quizIdx = player.skills[activeNPC.sport];
-  const quiz = activeNPC.quizzes[quizIdx];
+  const quiz = activeNPC.quizzes[player.difficulty][quizIdx];
   if (!quiz) return;
 
   ctx.save();
@@ -964,7 +1255,7 @@ function drawTeachUI() {
 function drawQuizUI() {
   ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const quizIdx = player.skills[activeNPC.sport];
-  const quiz = activeNPC.quizzes[quizIdx];
+  const quiz = activeNPC.quizzes[player.difficulty][quizIdx];
   if (!quiz) return; // safeguard for rapid state updates
 
   // Soft shadow
