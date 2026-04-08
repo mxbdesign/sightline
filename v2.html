@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sport Planet 🌍</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nunito:wght@400;700;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at top, #0d1b2a 0%, #1a252f 60%, #0d1b2a 100%);
+    display: flex; justify-content: center; align-items: center; min-height: 100vh;
+    font-family: 'Nunito', sans-serif; color: white; flex-direction: column; gap: 14px;
+  }
+  h2 {
+    font-family: 'Black Han Sans', sans-serif; font-size: 28px;
+    background: linear-gradient(90deg, #f39c12, #e74c3c, #9b59b6, #3498db, #1abc9c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 2px; text-shadow: none;
+  }
+  #game-container {
+    position: relative; width: 800px; height: 600px; overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.15); border-radius: 12px;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05);
+    background: #1a252f; cursor: crosshair;
+  }
+  canvas { position: absolute; top: 0; left: 0; }
+  .billboard {
+    position: absolute; top: 0; left: 0; pointer-events: auto;
+    transition: opacity 0.3s; border-radius: 6px; overflow: hidden;
+  }
+  .bb-label {
+    position: absolute; bottom: 0; left: 0; right: 0; text-align: center;
+    font-size: 9px; font-weight: 900; letter-spacing: 1.5px; padding: 3px 0;
+    text-transform: uppercase; color: #ecf0f1;
+  }
+  #cursor-ui {
+    position: absolute; bottom: 12px; right: 12px;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+    padding: 7px 12px; border-radius: 30px;
+    display: flex; gap: 8px; align-items: center; z-index: 50;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .cursor-btn {
+    font-size: 18px; cursor: pointer; transition: transform 0.15s, background 0.15s;
+    user-select: none; width: 32px; height: 32px;
+    display: flex; justify-content: center; align-items: center; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .cursor-btn:hover { transform: scale(1.2); background: rgba(255,255,255,0.2); }
+  .cursor-btn.active { background: #3498db; box-shadow: 0 0 10px #3498db; }
+  #modal-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 90;
+    justify-content: center; align-items: center;
+  }
+  #modal-overlay.show { display: flex; }
+  #club-modal {
+    width: 430px; background: #fff; color: #333; padding: 24px;
+    border-radius: 14px; box-shadow: 0 25px 80px rgba(0,0,0,0.9);
+    font-family: 'Nunito', sans-serif; animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #instructions {
+    color: #7f8c8d; font-size: 13px; text-align: center; line-height: 1.7;
+    font-family: 'Nunito', sans-serif;
+  }
+  kbd {
+    background: rgba(255,255,255,0.1); border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);
+    color: #ecf0f1; font-size: .8em; font-weight: 700; padding: 2px 6px;
+  }
+</style>
+</head>
+<body>
+
+<h2>SPORT PLANET 🌍</h2>
+
+<div id="game-container">
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <!-- Pickleball Billboard -->
+  <div class="billboard" id="bb-pickle" style="width:220px;height:155px;border:4px solid #1a5276;border-bottom-width:22px;background:#000;">
+    <iframe width="220" height="130" src="https://www.youtube.com/embed/aRRy0kpiP0s?mute=1&loop=1&playlist=aRRy0kpiP0s&controls=0&autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div class="bb-label" style="background:#1a5276;">📺 PPA PICKLEBALL HIGHLIGHTS</div>
+  </div>
+
+  <!-- Basketball Billboard (square) -->
+  <div class="billboard" id="bb-bball" style="width:180px;height:180px;border:5px solid #7d3c00;border-radius:10px;background:#000;">
+    <iframe width="170" height="150" src="https://www.youtube.com/embed/L2zqTYgcpfg?mute=1&loop=1&playlist=L2zqTYgcpfg&controls=0&autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div class="bb-label" style="background:#7d3c00;position:static;padding:3px 0;">🏀 BRISBANE BULLETS</div>
+  </div>
+
+  <!-- Soccer Billboard (wide panoramic) -->
+  <div class="billboard" id="bb-soccer" style="width:280px;height:120px;border:4px solid #1e5631;border-radius:4px;background:#000;">
+    <iframe width="272" height="95" src="https://www.youtube.com/embed/0BHGIRl1gHs?mute=1&loop=1&playlist=0BHGIRl1gHs&controls=0&autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div class="bb-label" style="background:#1e5631;">⚽ SOCCER: THE BEAUTIFUL GAME</div>
+  </div>
+
+  <!-- Lacrosse Billboard (portrait on pole) -->
+  <div class="billboard" id="bb-lacrosse" style="width:140px;height:200px;border:4px solid #0b5d5d;border-radius:6px;background:#000;">
+    <iframe width="132" height="175" src="https://www.youtube.com/embed/xhq55LJKP6Y?mute=1&loop=1&playlist=xhq55LJKP6Y&controls=0&autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div class="bb-label" style="background:#0b5d5d;">🥍 LACROSSE</div>
+  </div>
+
+  <!-- Field Hockey Billboard (classic with legs) -->
+  <div class="billboard" id="bb-fhockey" style="width:230px;height:140px;border:4px solid #154360;border-radius:4px;background:#000;">
+    <iframe width="222" height="115" src="https://www.youtube.com/embed/9ywHDvzXbvo?mute=1&loop=1&playlist=9ywHDvzXbvo&controls=0&autoplay=1" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div class="bb-label" style="background:#154360;">🏑 FIELD HOCKEY SKILLS</div>
+  </div>
+
+  <div id="cursor-ui">
+    <span style="font-size:11px;font-weight:900;color:#7f8c8d;margin-right:4px;">CURSOR</span>
+    <div class="cursor-btn active" onclick="setCursor('🎾',this)">🎾</div>
+    <div class="cursor-btn" onclick="setCursor('🏀',this)">🏀</div>
+    <div class="cursor-btn" onclick="setCursor('⚽',this)">⚽</div>
+    <div class="cursor-btn" onclick="setCursor('🏑',this)">🏑</div>
+    <div class="cursor-btn" onclick="setCursor('🥍',this)">🥍</div>
+  </div>
+
+  <div id="modal-overlay">
+    <div id="club-modal">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div style="width:48px;height:48px;background:#e74c3c;border-radius:50%;display:flex;justify-content:center;align-items:center;color:white;font-weight:900;font-size:15px;flex-shrink:0;">BPC</div>
+        <h2 style="color:#2c3e50;font-size:20px;font-family:Black Han Sans,sans-serif;-webkit-text-fill-color:#2c3e50;background:none;">Brisbane Pickleball Club</h2>
+      </div>
+      <img src="https://images.unsplash.com/photo-1622225436660-f203fb71658e?auto=format&fit=crop&w=800&q=80" alt="Pickleball Court" style="width:100%;height:160px;object-fit:cover;border-radius:8px;margin-bottom:12px;">
+      <p style="font-size:13px;line-height:1.5;color:#555;margin-bottom:10px;"><strong>Brisbane's #1 home of pickleball!</strong> Join us for social games, coaching, and tournaments.</p>
+      <ul style="line-height:1.8;font-size:13px;background:#f8f9fa;padding:10px 20px;border-radius:8px;border:1px solid #eee;color:#444;">
+        <li><strong>📍 Locations:</strong> Albion, Mt Gravatt, Coorparoo</li>
+        <li><strong>🗓️ Sessions:</strong> Come & Try — every Saturday 9am</li>
+        <li><strong>💰 Cost:</strong> $10 casual, memberships from $80/year</li>
+      </ul>
+      <button onclick="closeModal()" style="width:100%;padding:11px;background:#e74c3c;color:white;border:none;border-radius:8px;font-size:15px;font-weight:900;cursor:pointer;margin-top:12px;font-family:Nunito,sans-serif;">Got it! Let's play! 🎾</button>
+    </div>
+  </div>
+</div>
+
+<div id="instructions">
+  Move: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> &nbsp;|&nbsp; Interact / Play: <kbd>SPACE</kbd> &nbsp;|&nbsp; Exit Minigame: <kbd>ESC</kbd>
+</div>
+
+<script>
+// ─── CURSOR ──────────────────────────────────────────────
+function setCursor(emoji, btn) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='26' style='font-size:24px'>${emoji}</text></svg>`;
+  document.getElementById('game-container').style.cursor = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 16 16, auto`;
+  document.querySelectorAll('.cursor-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+setCursor('🎾', document.querySelector('.cursor-btn.active'));
+
+// ─── CANVAS SETUP ────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ─── WORLD CONSTANTS ─────────────────────────────────────
+const WW = 2400, WH = 1800;
+let gameState = 'PLAY';
+let globalTick = 0;
+const camera = { x: 0, y: 0 };
+
+// ─── PLAYER ──────────────────────────────────────────────
+const player = { x: 1200, y: 1350, w: 28, h: 28, speed: 5, color: '#e74c3c', facing: 'down', type: 'player' };
+
+// ─── INPUT ───────────────────────────────────────────────
+const keys = {};
+let spaceDown = false, mouseX = 400, mouseY = 300, mouseHeld = false;
+
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ' && !spaceDown) { spaceDown = true; handleInteraction(); }
+  if (e.key === 'Escape') exitMinigame();
+});
+window.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+  if (e.key === ' ') spaceDown = false;
+  if ((e.key === 'ArrowUp'||e.key==='w')) delete keys['w'], delete keys['arrowup'];
+  if ((e.key === 'ArrowDown'||e.key==='s')) delete keys['s'], delete keys['arrowdown'];
+  if ((e.key === 'ArrowLeft'||e.key==='a')) delete keys['a'], delete keys['arrowleft'];
+  if ((e.key === 'ArrowRight'||e.key==='d')) delete keys['d'], delete keys['arrowright'];
+  if (e.code === 'Space') { keys[' '] = false; spaceDown = false; }
+});
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  mouseX = e.clientX - r.left; mouseY = e.clientY - r.top;
+});
+canvas.addEventListener('mousedown', e => { mouseHeld = true; handleMouseDown(e); });
+canvas.addEventListener('mouseup', e => { mouseHeld = false; handleMouseUp(e); });
+
+// ─── BOTS ────────────────────────────────────────────────
+const bots = [
+  { x:1180,y:1350,w:28,h:28,color:'#3498db',facing:'down',dx:0,dy:0,timer:0,type:'bot' },
+  { x:380,y:350,w:28,h:28,color:'#9b59b6',facing:'left',dx:0,dy:0,timer:0,type:'bot' },
+  { x:2020,y:350,w:28,h:28,color:'#e67e22',facing:'up',dx:0,dy:0,timer:0,type:'bot' },
+  { x:380,y:880,w:28,h:28,color:'#1abc9c',facing:'right',dx:0,dy:0,timer:0,type:'bot' },
+  { x:2020,y:880,w:28,h:28,color:'#2980b9',facing:'up',dx:0,dy:0,timer:0,type:'bot' },
+];
+
+// ─── NPCs ────────────────────────────────────────────────
+const npcs = [
+  { x:340,y:200,w:28,h:28,color:'#ecf0f1',name:'Coach Taylah',cap:'#e67e22',facing:'down',
+    dialogue:['Welcome to Pickleball! The kitchen (red zone) is off limits for volleys.','Step onto the blue court and press SPACE to start the volley drill!'] },
+  { x:110,y:370,w:28,h:28,color:'#ecf0f1',name:'Coach Shirley',cap:'#9b59b6',facing:'right',
+    dialogue:['Have you joined the Brisbane Pickleball Club?','Check the red board to your left for sign-ups!'] },
+  { x:1160,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach MJ',cap:'#d35400',facing:'down',
+    dialogue:['Welcome to the Hardwood! Basketball is 80% mental, 20% physical.','Head to centre court and press SPACE to take your free throws!'] },
+  { x:1960,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach Mia',cap:'#27ae60',facing:'down',
+    dialogue:['Olá! The beautiful game awaits.','Step onto the pitch and press SPACE for a penalty shootout!'] },
+  { x:390,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Paul',cap:'#1abc9c',facing:'right',
+    dialogue:['Lacrosse — fastest sport on two feet!','Attackers cannot enter the circular crease. Use the catch drill to warm up!'] },
+  { x:1960,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Lexi',cap:'#2980b9',facing:'left',
+    dialogue:['Field Hockey — pure skill and stamina.','You must be inside the striking circle to score. Try the drag-flick drill!'] },
+];
+
+// ─── STATIC BILLBOARDS / SIGNS ───────────────────────────
+const signs = [
+  { x:80,y:290,w:110,h:58,text:['BPC SIGN UPS','Press SPACE'],color:'#c0392b' },
+  { x:1090,y:85,w:220,h:72,text:['BASKETBALL TRYOUTS','Brisbane Bullets 2025'],color:'#d35400' },
+  { x:1840,y:85,w:200,h:72,text:['BRISBANE FC','Season Tickets Available'],color:'#27ae60' },
+  { x:90,y:680,w:200,h:60,text:['LACROSSE LEAGUE','Register Now — All Levels'],color:'#1abc9c' },
+  { x:1850,y:680,w:200,h:60,text:['FIELD HOCKEY CLUB','Come & Try — Free Entry'],color:'#2980b9' },
+];
+
+// ─── INTERACTIVE ZONES ───────────────────────────────────
+const zones = [
+  { x:190,y:250,w:430,h:210,type:'minigame',game:'PICKLEBALL',label:'VOLLEY DRILL',color:'#2980b9',prompt:'Press SPACE to play Pickleball Volley Drill' },
+  { x:80,y:295,w:110,h:58,type:'modal',prompt:'Press SPACE to view BPC Sign-Ups' },
+  { x:940,y:105,w:510,h:310,type:'minigame',game:'BASKETBALL',label:'FREE THROW CHALLENGE',color:'#d35400',prompt:'Press SPACE to play Basketball Free Throws' },
+  { x:1680,y:105,w:620,h:310,type:'minigame',game:'SOCCER',label:'PENALTY SHOOTOUT',color:'#27ae60',prompt:'Press SPACE for Soccer Penalty Shootout' },
+  { x:90,y:720,w:620,h:310,type:'minigame',game:'LACROSSE',label:'CATCH DRILL',color:'#1abc9c',prompt:'Press SPACE to play Lacrosse Catch Drill' },
+  { x:1680,y:720,w:620,h:310,type:'minigame',game:'FIELDHOCKEY',label:'DRAG-FLICK DRILL',color:'#2980b9',prompt:'Press SPACE for Field Hockey Drag-Flick' },
+];
+
+// ─── MINIGAME STATES ─────────────────────────────────────
+// PICKLEBALL
+const mgPickle = {
+  paddle:{x:350,y:500,w:85,h:14}, ball:{x:400,y:100,r:10,vx:4,vy:4,color:'#f1c40f'},
+  score:0, best:0,
+  colors:['#f1c40f','#e74c3c','#3498db','#ecf0f1','#9b59b6','#1abc9c'],
+};
+
+// BASKETBALL
+const mgBball = {
+  ball:{x:140,y:390,r:18,vx:0,vy:0,active:false},
+  hoopX:640, hoopY:220, hoopR:28,
+  powerCharging:false, power:0,
+  score:0, shots:0, maxShots:10,
+  result:'', resultTimer:0, done:false,
+  gravity:0.45,
+  shotResult:'',
+};
+
+// SOCCER
+const mgSoccer = {
+  ballX:400, ballY:480, kicked:false, bvx:0, bvy:0,
+  keepX:400, keepW:90, keepDir:1, keepSpeed:3.5,
+  aimX:400, aimY:140,
+  goalX1:165, goalX2:635, goalY:70, goalH:90,
+  score:0, shots:0, maxShots:6,
+  result:'', resultTimer:0, done:false,
+};
+
+// LACROSSE
+const mgLax = {
+  stick:{x:375,y:530,w:110},
+  balls:[], score:0, misses:0, maxMisses:3,
+  spawnTimer:0, spawnInterval:80, speed:3.2,
+  done:false, best:0,
+};
+
+// FIELD HOCKEY
+const mgFH = {
+  puck:{x:400,y:460,r:10,vx:0,vy:0},
+  stick:{x:400,y:480},
+  keeper:{x:400,y:100,w:80,dir:1,speed:3},
+  shooting:false, shotVx:0, shotVy:0,
+  score:0, shots:0, maxShots:5,
+  result:'', resultTimer:0, done:false,
+  goalX1:200,goalX2:600,goalY:60,goalH:70,
+  aimX:400,aimY:120,
+};
+
+// ─── DIALOGUE STATE ──────────────────────────────────────
+let activeNPC = null, dlgIdx = 0, curDlg = [];
+let activePrompt = '';
+
+// ─── INPUT HANDLERS ──────────────────────────────────────
+function handleInteraction() {
+  if (gameState === 'PLAY') {
+    for (const z of zones) {
+      const px = player.x+14, py = player.y+14;
+      if (px>z.x && px<z.x+z.w && py>z.y && py<z.y+z.h) {
+        if (z.type === 'modal') { showModal(); return; }
+        if (z.type === 'minigame') { startMinigame(z.game); return; }
+      }
+    }
+    for (const npc of npcs) {
+      if (Math.hypot(player.x-npc.x, player.y-npc.y) < 55) {
+        activeNPC = npc; curDlg = npc.dialogue; dlgIdx = 0; gameState = 'DIALOGUE'; return;
+      }
+    }
+  } else if (gameState === 'DIALOGUE') {
+    dlgIdx++;
+    if (dlgIdx >= curDlg.length) { gameState = 'PLAY'; activeNPC = null; }
+  }
+}
+
+function handleMouseDown(e) {
+  if (gameState === 'BASKETBALL' && !mgBball.done && !mgBball.ball.active) {
+    mgBball.powerCharging = true; mgBball.power = 0;
+  }
+  if (gameState === 'SOCCER' && !mgSoccer.done && !mgSoccer.kicked) {
+    kickSoccer();
+  }
+  if (gameState === 'FIELDHOCKEY' && !mgFH.done && !mgFH.shooting) {
+    shootFH();
+  }
+  if (gameState === 'PICKLEBALL') {
+    // Color picker
+    const cy = canvas.height - 28;
+    const sx = 400 - mgPickle.colors.length * 28;
+    mgPickle.colors.forEach((c,i) => {
+      if (Math.hypot(mouseX - (sx + i*56+28), mouseY - cy) < 22) mgPickle.ball.color = c;
+    });
+  }
+}
+
+function handleMouseUp(e) {
+  if (gameState === 'BASKETBALL' && mgBball.powerCharging) {
+    shootBasketball();
+    mgBball.powerCharging = false;
+  }
+}
+
+function startMinigame(name) {
+  gameState = name;
+  switch(name) {
+    case 'PICKLEBALL':
+      mgPickle.score=0; mgPickle.ball.x=400; mgPickle.ball.y=100; mgPickle.ball.vy=4; mgPickle.ball.vx=(Math.random()>0.5?4:-4); break;
+    case 'BASKETBALL':
+      mgBball.ball.x=140;mgBball.ball.y=390;mgBball.ball.active=false;mgBball.ball.vx=0;mgBball.ball.vy=0;
+      mgBball.power=0;mgBball.powerCharging=false;mgBball.score=0;mgBball.shots=0;mgBball.done=false;mgBball.result='';mgBball.shotResult=''; break;
+    case 'SOCCER':
+      mgSoccer.ballX=400;mgSoccer.ballY=480;mgSoccer.kicked=false;mgSoccer.score=0;mgSoccer.shots=0;mgSoccer.done=false;mgSoccer.result=''; break;
+    case 'LACROSSE':
+      mgLax.balls=[];mgLax.score=0;mgLax.misses=0;mgLax.spawnTimer=0;mgLax.speed=3.2;mgLax.done=false; break;
+    case 'FIELDHOCKEY':
+      mgFH.puck.x=400;mgFH.puck.y=460;mgFH.puck.vx=0;mgFH.puck.vy=0;mgFH.shooting=false;
+      mgFH.score=0;mgFH.shots=0;mgFH.done=false;mgFH.result='';mgFH.keeper.x=400; break;
+  }
+}
+
+function exitMinigame() {
+  if (['PICKLEBALL','BASKETBALL','SOCCER','LACROSSE','FIELDHOCKEY'].includes(gameState)) {
+    if (gameState==='PICKLEBALL' && mgPickle.score > mgPickle.best) mgPickle.best = mgPickle.score;
+    if (gameState==='LACROSSE' && mgLax.score > mgLax.best) mgLax.best = mgLax.score;
+    gameState = 'PLAY';
+  }
+}
+
+function showModal() { document.getElementById('modal-overlay').classList.add('show'); gameState='MODAL'; }
+window.closeModal = function() { document.getElementById('modal-overlay').classList.remove('show'); gameState='PLAY'; };
+
+// ─── BASKETBALL SHOOT ────────────────────────────────────
+function shootBasketball() {
+  if (mgBball.ball.active || mgBball.done) return;
+  const b = mgBball.ball;
+  const angle = Math.atan2(mouseY - b.y, mouseX - b.x);
+  const p = Math.min(mgBball.power, 100) / 100;
+  const speed = 10 + p * 8;
+  b.vx = Math.cos(angle) * speed;
+  b.vy = Math.sin(angle) * speed;
+  b.active = true;
+  mgBball.shots++;
+  mgBball.shotResult = '';
+}
+
+// ─── SOCCER KICK ─────────────────────────────────────────
+function kickSoccer() {
+  const dx = mgSoccer.aimX - mgSoccer.ballX, dy = mgSoccer.aimY - mgSoccer.ballY;
+  const dist = Math.hypot(dx,dy);
+  mgSoccer.bvx = (dx/dist)*16; mgSoccer.bvy = (dy/dist)*16;
+  mgSoccer.kicked = true;
+  mgSoccer.keepX = 165 + Math.random()*(470-90); // keeper jumps to random spot
+}
+
+// ─── FIELD HOCKEY SHOOT ──────────────────────────────────
+function shootFH() {
+  const p = mgFH.puck;
+  const dx = mgFH.aimX - p.x, dy = mgFH.aimY - p.y;
+  const dist = Math.hypot(dx,dy);
+  p.vx = (dx/dist)*14; p.vy = (dy/dist)*14;
+  mgFH.shooting = true;
+  mgFH.shots++;
+  mgFH.keeper.x = mgFH.goalX1 + Math.random()*(mgFH.goalX2-mgFH.goalX1-80);
+}
+
+// ─── UPDATE ──────────────────────────────────────────────
+function update() {
+  globalTick++;
+
+  if (gameState === 'PLAY' || gameState === 'DIALOGUE') {
+    if (gameState === 'PLAY') {
+      const spd = player.speed;
+      if ((keys['w']||keys['arrowup']) && player.y>0) { player.y-=spd; player.facing='up'; }
+      if ((keys['s']||keys['arrowdown']) && player.y<WH-player.h) { player.y+=spd; player.facing='down'; }
+      if ((keys['a']||keys['arrowleft']) && player.x>0) { player.x-=spd; player.facing='left'; }
+      if ((keys['d']||keys['arrowright']) && player.x<WW-player.w) { player.x+=spd; player.facing='right'; }
+    }
+    camera.x = Math.max(0, Math.min(player.x - 400, WW-800));
+    camera.y = Math.max(0, Math.min(player.y - 300, WH-600));
+
+    bots.forEach(bot => {
+      bot.timer--;
+      if (bot.timer <= 0) {
+        const dirs = [{dx:0,dy:0},{dx:2,dy:0},{dx:-2,dy:0},{dx:0,dy:2},{dx:0,dy:-2}];
+        const p = dirs[Math.floor(Math.random()*dirs.length)];
+        bot.dx=p.dx; bot.dy=p.dy;
+        if(bot.dx>0) bot.facing='right'; if(bot.dx<0) bot.facing='left';
+        if(bot.dy>0) bot.facing='down'; if(bot.dy<0) bot.facing='up';
+        bot.timer = 60+Math.floor(Math.random()*90);
+      }
+      bot.x=Math.max(0,Math.min(bot.x+bot.dx,WW-bot.w));
+      bot.y=Math.max(0,Math.min(bot.y+bot.dy,WH-bot.h));
+    });
+
+    activePrompt = '';
+    for (const z of zones) {
+      const px=player.x+14, py=player.y+14;
+      if (px>z.x && px<z.x+z.w && py>z.y && py<z.y+z.h) { activePrompt = z.prompt; break; }
+    }
+
+  } else if (gameState === 'PICKLEBALL') {
+    updatePickle();
+  } else if (gameState === 'BASKETBALL') {
+    updateBball();
+  } else if (gameState === 'SOCCER') {
+    updateSoccer();
+  } else if (gameState === 'LACROSSE') {
+    updateLax();
+  } else if (gameState === 'FIELDHOCKEY') {
+    updateFH();
+  }
+}
+
+// ── PICKLEBALL UPDATE ─────────────────────────────────────
+function updatePickle() {
+  const mg = mgPickle;
+  mg.paddle.x = mouseX - mg.paddle.w/2;
+  mg.paddle.y = Math.min(mouseY, canvas.height-80) - mg.paddle.h/2;
+  mg.ball.x += mg.ball.vx; mg.ball.y += mg.ball.vy;
+  if (mg.ball.x-mg.ball.r<0||mg.ball.x+mg.ball.r>canvas.width) mg.ball.vx*=-1;
+  if (mg.ball.y-mg.ball.r<0) mg.ball.vy*=-1;
+  // Paddle collision
+  if (mg.ball.vy>0 && mg.ball.y+mg.ball.r>=mg.paddle.y && mg.ball.y-mg.ball.r<=mg.paddle.y+mg.paddle.h
+      && mg.ball.x>=mg.paddle.x && mg.ball.x<=mg.paddle.x+mg.paddle.w) {
+    mg.ball.vy *= -(1+mg.score*0.01); mg.ball.vx *= (1+mg.score*0.005);
+    mg.ball.y = mg.paddle.y - mg.ball.r; mg.score++;
+  }
+  if (mg.ball.y>canvas.height-60) {
+    if (mg.score>mg.best) mg.best=mg.score; gameState='PLAY';
+  }
+}
+
+// ── BASKETBALL UPDATE ─────────────────────────────────────
+function updateBball() {
+  const mg = mgBball;
+  if (mg.done) return;
+  if (mg.powerCharging) mg.power = Math.min(mg.power+1.5, 100);
+  if (mg.result && mg.resultTimer-->0 && mg.resultTimer<=0) mg.result='';
+  if (mg.ball.active) {
+    mg.ball.x += mg.ball.vx; mg.ball.y += mg.ball.vy; mg.ball.vy += mg.gravity;
+    // Hoop collision
+    const dx=mg.ball.x-mg.hoopX, dy=mg.ball.y-mg.hoopY;
+    if (mg.ball.vy>0 && Math.abs(dx)<mg.hoopR && Math.abs(dy)<18) {
+      mg.score++; mg.shotResult='NICE! 🏀'; mg.ball.active=false;
+      mg.ball.x=140; mg.ball.y=390; mg.ball.vx=0; mg.ball.vy=0;
+    }
+    // Ball out of bounds
+    if (mg.ball.x>canvas.width+50 || mg.ball.y>canvas.height+50 || mg.ball.x<-50) {
+      mg.shotResult='MISS!'; mg.ball.active=false; mg.ball.x=140; mg.ball.y=390;
+    }
+    if (mg.shots>=mg.maxShots && !mg.ball.active) mg.done=true;
+  }
+}
+
+// ── SOCCER UPDATE ─────────────────────────────────────────
+function updateSoccer() {
+  const mg = mgSoccer;
+  if (mg.done) return;
+  mg.aimX = mouseX; mg.aimY = Math.min(mouseY, mg.goalY+mg.goalH+20);
+  if (!mg.kicked) {
+    // keeper patrols
+    mg.keepX += mg.keepDir * mg.keepSpeed;
+    if (mg.keepX < mg.goalX1+10 || mg.keepX > mg.goalX2-100) mg.keepDir*=-1;
+  }
+  if (mg.kicked) {
+    mg.ballX += mg.bvx; mg.ballY += mg.bvy;
+    mg.bvx *= 0.98; mg.bvy *= 0.98;
+    // Goal check
+    if (mg.ballY <= mg.goalY+mg.goalH && mg.ballX>mg.goalX1 && mg.ballX<mg.goalX2) {
+      // Did keeper save?
+      const saved = mg.ballX>mg.keepX && mg.ballX<mg.keepX+90 && mg.ballY<mg.goalY+mg.goalH;
+      if (!saved) { mg.score++; mg.result='GOAL! ⚽'; }
+      else mg.result='SAVED!';
+      mg.shots++;
+      setTimeout(()=>resetSoccerBall(), 1200);
+    }
+    if (mg.ballY < 0 || mg.ballX<0 || mg.ballX>canvas.width) {
+      mg.result='MISS!'; mg.shots++;
+      setTimeout(()=>resetSoccerBall(), 1000);
+    }
+    if (mg.shots>=mg.maxShots) setTimeout(()=>mg.done=true, 1500);
+  }
+}
+
+function resetSoccerBall() {
+  mgSoccer.ballX=400; mgSoccer.ballY=480; mgSoccer.kicked=false; mgSoccer.result='';
+}
+
+// ── LACROSSE UPDATE ───────────────────────────────────────
+function updateLax() {
+  const mg = mgLax;
+  if (mg.done) return;
+  mg.stick.x = mouseX - mg.stick.w/2;
+  mg.spawnTimer++;
+  if (mg.spawnTimer >= mg.spawnInterval) {
+    mg.balls.push({ x:50+Math.random()*(canvas.width-100), y:-15, r:12, color:['#e74c3c','#f1c40f','#ecf0f1'][Math.floor(Math.random()*3)] });
+    mg.spawnTimer=0; mg.spawnInterval = Math.max(30, 80-mg.score*3);
+  }
+  mg.speed = 3.2 + mg.score*0.15;
+  mg.balls.forEach(b=>b.y+=mg.speed);
+  // Catch check
+  mg.balls = mg.balls.filter(b => {
+    if (b.y+b.r >= mg.stick.y && b.y-b.r <= mg.stick.y+18 && b.x>=mg.stick.x && b.x<=mg.stick.x+mg.stick.w) {
+      mg.score++; return false;
+    }
+    if (b.y > canvas.height) { mg.misses++; if(mg.misses>=mg.maxMisses){mg.done=true;if(mg.score>mg.best)mg.best=mg.score;} return false; }
+    return true;
+  });
+}
+
+// ── FIELD HOCKEY UPDATE ───────────────────────────────────
+function updateFH() {
+  const mg = mgFH;
+  if (mg.done) return;
+  mg.aimX = mouseX; mg.aimY = Math.min(mouseY, mg.goalY+mg.goalH+20);
+  if (!mg.shooting) {
+    // keeper patrols
+    mg.keeper.x += mg.keeper.dir * mg.keeper.speed;
+    if (mg.keeper.x<mg.goalX1+10||mg.keeper.x>mg.goalX2-90) mg.keeper.dir*=-1;
+  }
+  if (mg.shooting) {
+    mg.puck.x += mg.puck.vx; mg.puck.y += mg.puck.vy;
+    mg.puck.vx *= 0.98; mg.puck.vy *= 0.98;
+    // Goal
+    if (mg.puck.y<=mg.goalY+mg.goalH && mg.puck.x>mg.goalX1 && mg.puck.x<mg.goalX2) {
+      const saved = mg.puck.x>mg.keeper.x && mg.puck.x<mg.keeper.x+mg.keeper.w;
+      if (!saved) { mg.score++; mg.result='GOAL! 🏑'; }
+      else mg.result='SAVED!';
+      setTimeout(()=>resetFH(), 1200);
+    }
+    if (mg.puck.y<0||mg.puck.x<0||mg.puck.x>canvas.width) { mg.result='WIDE!'; setTimeout(()=>resetFH(),1000); }
+    if (mg.shots>=mg.maxShots) setTimeout(()=>mg.done=true,1500);
+  }
+}
+
+function resetFH() {
+  mgFH.puck.x=400;mgFH.puck.y=460;mgFH.puck.vx=0;mgFH.puck.vy=0;mgFH.shooting=false;mgFH.result='';
+}
+
+// ─── DRAW WORLD ──────────────────────────────────────────
+function drawWorld() {
+  ctx.save();
+  ctx.translate(-camera.x, -camera.y);
+
+  // === BASE GROUND ===
+  ctx.fillStyle='#4a7c3f'; ctx.fillRect(0,0,WW,WH);
+
+  // === PATHWAYS ===
+  ctx.fillStyle='#8e9eab';
+  ctx.fillRect(0,455,WW,110); // main horizontal
+  ctx.fillRect(1145,0,110,WH); // main vertical
+  // path detail dashes
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=3; ctx.setLineDash([30,20]);
+  ctx.beginPath(); ctx.moveTo(0,510); ctx.lineTo(WW,510); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(1200,0); ctx.lineTo(1200,WH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // === HUB PLAZA ===
+  ctx.fillStyle='#7f8c8d'; drawCircle(1200,1450,200);
+  ctx.fillStyle='#95a5a6'; drawCircle(1200,1450,140);
+  ctx.fillStyle='rgba(255,255,255,0.12)'; drawCircle(1200,1450,80);
+  // Hub fountain
+  ctx.fillStyle='#2980b9'; drawCircle(1200,1450,30);
+  ctx.fillStyle='rgba(100,200,255,0.6)'; drawCircle(1200,1450,18);
+  // Hub label
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 26px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('SPORT PLANET HUB',1200,1460);
+  ctx.font='bold 13px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillText('↑ Basketball   Pickleball ←',1200,1490);
+
+  // ============================================================
+  // ZONE 1: PICKLEBALL (Top Left, 0–800 x 0–455)
+  // ============================================================
+  ctx.fillStyle='#3d8b37'; ctx.fillRect(0,0,800,455);
+  // Grass texture
+  for(let i=0;i<800;i+=30) { ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,455); ctx.stroke(); }
+  // Court surface
+  ctx.fillStyle='#1e6fa0'; ctx.fillRect(190,245,430,215);
+  // Kitchen zone
+  ctx.fillStyle='#c0392b'; ctx.fillRect(290,245,220,70);
+  ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(290,315,220,145);
+  // Court lines
+  ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.setLineDash([]);
+  ctx.strokeRect(190,245,430,215);
+  ctx.beginPath(); ctx.moveTo(405,245); ctx.lineTo(405,460); ctx.stroke(); // centreline
+  ctx.beginPath(); ctx.moveTo(190,315); ctx.lineTo(620,315); ctx.stroke(); // kitchen line
+  // Net post shadows
+  ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.fillRect(403,304,4,20);
+  // Net
+  ctx.strokeStyle='#ccc'; ctx.lineWidth=2;
+  for(let nx=190;nx<620;nx+=10){ctx.beginPath();ctx.moveTo(nx,311);ctx.lineTo(nx+5,313);ctx.stroke();}
+  // Scoreboard
+  drawScoreboard(650, 255, 'PICKLEBALL', '#1e6fa0');
+  // Trees
+  drawTree(30,30); drawTree(730,30); drawTree(30,400); drawTree(730,400);
+  drawTree(160,200); drawTree(680,200);
+  // Benches
+  drawBench(680,250,true); drawBench(680,400,true);
+  // Zone label
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='bold 44px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('PICKLEBALL',400,130);
+
+  // ============================================================
+  // ZONE 2: BASKETBALL (Top Centre, 800–1600 x 0–455)
+  // ============================================================
+  ctx.fillStyle='#1a1e2e'; ctx.fillRect(800,0,800,455);
+  // Crowd bleachers effect
+  for(let i=0;i<8;i++){ctx.fillStyle=`rgba(255,255,255,${0.02+i*0.005})`;ctx.fillRect(800,i*5,800,5);}
+  // Hardwood floor
+  ctx.fillStyle='#c8832c'; ctx.fillRect(940,100,520,310);
+  // Hardwood planks
+  ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1;
+  for(let ln=940;ln<1460;ln+=22){ctx.beginPath();ctx.moveTo(ln,100);ctx.lineTo(ln,410);ctx.stroke();}
+  // Court lines
+  ctx.strokeStyle='white'; ctx.lineWidth=3;
+  ctx.strokeRect(940,100,520,310);
+  ctx.beginPath(); ctx.moveTo(1200,100); ctx.lineTo(1200,410); ctx.stroke();
+  ctx.beginPath(); ctx.arc(1200,255,50,0,Math.PI*2); ctx.stroke();
+  // The paint
+  ctx.strokeStyle='white'; ctx.lineWidth=3;
+  ctx.strokeRect(940,185,120,140); ctx.strokeRect(1340,185,120,140);
+  // 3-point arcs
+  ctx.beginPath(); ctx.arc(1060,255,150,-Math.PI/2,Math.PI/2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(1340,255,150,Math.PI/2,-Math.PI/2); ctx.stroke();
+  // Backboards
+  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fillRect(928,220,12,50); ctx.fillRect(1460,220,12,50);
+  ctx.strokeStyle='#e74c3c'; ctx.lineWidth=2; ctx.strokeRect(930,228,8,30); ctx.strokeRect(1462,228,8,30);
+  // Hoops
+  ctx.strokeStyle='#e74c3c'; ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(948,242,12,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(1452,242,12,0,Math.PI*2);ctx.stroke();
+  // Scoreboard
+  drawScoreboard(1500,100,'BASKETBALL','#d35400');
+  drawTree(820,30); drawTree(1560,30); drawTree(820,400); drawTree(1560,400);
+  drawBench(950,430,false); drawBench(1400,430,false);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('BASKETBALL',1200,65);
+
+  // ============================================================
+  // ZONE 3: SOCCER (Top Right, 1600–2400 x 0–455)
+  // ============================================================
+  ctx.fillStyle='#2e7d32'; ctx.fillRect(1600,0,800,455);
+  // Grass stripes
+  for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(1600+i*100,0,100,455);}
+  // Pitch
+  ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(1690,90,620,315);
+  ctx.beginPath(); ctx.moveTo(2000,90); ctx.lineTo(2000,405); ctx.stroke();
+  ctx.beginPath(); ctx.arc(2000,248,55,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(2000,248,5,0,Math.PI*2); ctx.fillStyle='white'; ctx.fill();
+  // Penalty boxes
+  ctx.strokeStyle='white';
+  ctx.strokeRect(1690,178,110,140); ctx.strokeRect(2200,178,110,140);
+  ctx.strokeRect(1690,208,55,80); ctx.strokeRect(2255,208,55,80);
+  // Penalty spots
+  ctx.fillStyle='white';
+  ctx.beginPath();ctx.arc(1780,248,5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(2220,248,5,0,Math.PI*2);ctx.fill();
+  // Goals
+  ctx.fillStyle='white';
+  ctx.fillRect(1672,218,18,60); ctx.fillRect(2310,218,18,60);
+  ctx.fillRect(1672,218,20,5); ctx.fillRect(1672,273,20,5);
+  ctx.fillRect(2308,218,20,5); ctx.fillRect(2308,273,20,5);
+  // Corner arcs
+  for(const [cx2,cy2] of[[1690,90],[2310,90],[1690,405],[2310,405]]){
+    ctx.beginPath();ctx.arc(cx2,cy2,20,0,Math.PI*2);ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+  }
+  drawScoreboard(2290,90,'SOCCER','#27ae60');
+  drawTree(1620,30); drawTree(2360,30); drawTree(1620,400); drawTree(2360,400);
+  drawBench(1710,420,false); drawBench(2200,420,false);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('SOCCER',2000,55);
+
+  // ============================================================
+  // ZONE 4: LACROSSE (Bottom Left, 0–800 x 565–1600)
+  // ============================================================
+  ctx.fillStyle='#1abc9c'; ctx.fillRect(0,565,800,1035);
+  for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(i*100,565,100,1035);}
+  ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(85,715,630,310);
+  ctx.beginPath();ctx.moveTo(400,715);ctx.lineTo(400,1025);ctx.stroke();
+  // Creases (circles)
+  ctx.beginPath();ctx.arc(200,870,50,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(600,870,50,0,Math.PI*2);ctx.stroke();
+  // Goals in creases
+  ctx.fillStyle='white';
+  ctx.fillRect(188,856,24,28); ctx.fillRect(588,856,24,28);
+  // Midfield markings
+  ctx.beginPath();ctx.arc(400,870,40,0,Math.PI*2);ctx.stroke();
+  drawScoreboard(665,715,'LACROSSE','#1abc9c');
+  drawTree(30,580); drawTree(740,580); drawTree(30,1050); drawTree(740,1050);
+  drawBench(100,1040,false); drawBench(600,1040,false);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('LACROSSE',400,660);
+
+  // ============================================================
+  // ZONE 5: FIELD HOCKEY (Bottom Right, 1600–2400 x 565–1600)
+  // ============================================================
+  ctx.fillStyle='#27ae60'; ctx.fillRect(1600,565,800,1035);
+  for(let i=0;i<16;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(1600,565+i*65,800,65);}
+  ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(1690,715,620,310);
+  ctx.beginPath();ctx.moveTo(2000,715);ctx.lineTo(2000,1025);ctx.stroke();
+  // Striking circles
+  ctx.beginPath();ctx.arc(1690,870,120,-Math.PI/2,Math.PI/2);ctx.stroke();
+  ctx.beginPath();ctx.arc(2310,870,120,Math.PI/2,-Math.PI/2);ctx.stroke();
+  // Goals
+  ctx.fillStyle='white';
+  ctx.fillRect(1678,840,12,60); ctx.fillRect(2310,840,12,60);
+  ctx.fillRect(1678,840,14,6); ctx.fillRect(1678,894,14,6);
+  ctx.fillRect(2308,840,14,6); ctx.fillRect(2308,894,14,6);
+  // Penalty spot
+  ctx.beginPath();ctx.arc(1780,870,5,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+  ctx.beginPath();ctx.arc(2220,870,5,0,Math.PI*2);ctx.fill();
+  drawScoreboard(2290,715,'FIELD HOCKEY','#2980b9');
+  drawTree(1620,580); drawTree(2360,580); drawTree(1620,1050); drawTree(2360,1050);
+  drawBench(1710,1040,false); drawBench(2180,1040,false);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 40px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText('FIELD HOCKEY',2000,660);
+
+  // === LIGHT POLES ===
+  const poles=[[110,240],[680,240],[940,90],[1470,90],[1700,90],[2320,90],[110,710],[680,710],[1700,710],[2320,710]];
+  poles.forEach(([px,py])=>drawPole(px,py));
+
+  // === MINIGAME INDICATORS ===
+  zones.filter(z=>z.type==='minigame').forEach(z=>{
+    if (gameState!=='PLAY' && gameState!=='DIALOGUE') return;
+    drawMinigameIndicator(z);
+  });
+
+  // === SIGNS / BILLBOARDS ===
+  signs.forEach(s=>{
+    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.fillRect(s.x+4,s.y+4,s.w,s.h);
+    ctx.fillStyle=s.color; ctx.fillRect(s.x,s.y,s.w,s.h);
+    ctx.fillStyle='white'; ctx.font='bold 12px Nunito,sans-serif'; ctx.textAlign='center';
+    s.text.forEach((ln,i)=>ctx.fillText(ln,s.x+s.w/2,s.y+22+i*17));
+  });
+
+  // === ENTITIES ===
+  npcs.forEach(n=>drawEntity(n));
+  bots.forEach(b=>drawEntity(b));
+  drawEntity(player);
+
+  ctx.restore();
+}
+
+function drawCircle(x,y,r){ ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
+
+function drawTree(x,y) {
+  ctx.fillStyle='#5d4037'; ctx.fillRect(x-4,y+16,8,22);
+  ctx.fillStyle='#2e7d32'; drawCircle(x,y,22);
+  ctx.fillStyle='#388e3c'; drawCircle(x-6,y+4,14);
+  ctx.fillStyle='#1b5e20'; drawCircle(x+6,y+6,12);
+}
+
+function drawBench(x,y,vertical) {
+  ctx.fillStyle='#795548';
+  if (vertical) { ctx.fillRect(x,y,8,40); ctx.fillRect(x+12,y,8,40); }
+  else { ctx.fillRect(x,y,40,8); ctx.fillRect(x,y+12,40,8); }
+  ctx.fillStyle='#a1887f';
+  if (vertical) ctx.fillRect(x-2,y+10,22,6); else ctx.fillRect(x+10,y-2,6,22);
+}
+
+function drawPole(x,y) {
+  ctx.fillStyle='#7f8c8d'; ctx.fillRect(x-3,y,6,40);
+  ctx.fillStyle='#f1c40f';
+  ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);
+  const grd=ctx.createRadialGradient(x,y,2,x,y,10);
+  grd.addColorStop(0,'rgba(255,255,200,0.9)'); grd.addColorStop(1,'rgba(255,200,0,0.1)');
+  ctx.fillStyle=grd; ctx.fill();
+  ctx.shadowColor='#f1c40f'; ctx.shadowBlur=15;
+  ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.shadowBlur=0;
+}
+
+function drawScoreboard(x,y,sport,color) {
+  ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(x,y,90,50);
+  ctx.fillStyle=color; ctx.fillRect(x,y,90,18);
+  ctx.fillStyle='white'; ctx.font='bold 9px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(sport,x+45,y+13);
+  ctx.font='bold 20px Black Han Sans,sans-serif'; ctx.fillStyle='#f1c40f';
+  ctx.fillText('0 - 0',x+45,y+42);
+}
+
+function drawMinigameIndicator(zone) {
+  const cx = zone.x + zone.w/2;
+  const cy = zone.y - 15;
+  const bounce = Math.sin(globalTick * 0.07) * 9;
+  const pulse = 0.7 + Math.sin(globalTick * 0.1) * 0.3;
+
+  ctx.save();
+  ctx.globalAlpha = pulse;
+  ctx.shadowColor = zone.color; ctx.shadowBlur = 20;
+
+  // Pill background
+  ctx.font = 'bold 15px Nunito,sans-serif';
+  const label = `⚡ MINIGAME ⚡`;
+  const tw = ctx.measureText(label).width;
+  ctx.fillStyle='rgba(0,0,0,0.75)';
+  roundRect(ctx, cx-tw/2-14, cy-bounce-32, tw+28, 26, 13);
+  ctx.fill();
+
+  // Glowing text
+  ctx.fillStyle = zone.color;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, cx, cy-bounce-13);
+
+  // Sub-label
+  ctx.shadowBlur=0;
+  ctx.font='bold 11px Nunito,sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.fillText(zone.label, cx, cy-bounce+4);
+
+  // Bouncing chevrons
+  ctx.fillStyle = zone.color;
+  ctx.font='bold 18px Arial';
+  ctx.fillText('▼', cx, cy-bounce+22);
+  ctx.globalAlpha = pulse*0.5;
+  ctx.fillText('▼', cx, cy-bounce+36);
+
+  ctx.globalAlpha = 1; ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawEntity(e) {
+  const x=e.x, y=e.y;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x+14,y+26,12,5,0,0,Math.PI*2); ctx.fill();
+  // Body
+  ctx.fillStyle=e.color; ctx.fillRect(x+5,y+12,18,16);
+  // Head
+  ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(x+14,y+8,9,0,Math.PI*2); ctx.fill();
+  // Cap for coaches
+  if (e.type==='coach') {
+    ctx.fillStyle=e.cap;
+    ctx.beginPath(); ctx.arc(x+14,y+7,9,Math.PI,0); ctx.fill();
+    ctx.fillRect(x+5,y+4,18,4);
+    // Brim
+    ctx.fillRect(x+2,y+6,22,3);
+  }
+  // Eyes
+  if (e.facing!=='up') {
+    ctx.fillStyle='#111';
+    let ex=e.facing==='left'?7:e.facing==='right'?17:10;
+    let ex2=e.facing==='left'?11:e.facing==='right'?21:16;
+    ctx.fillRect(x+ex,y+6,2,2); ctx.fillRect(x+ex2,y+6,2,2);
+  }
+  // NPC name tag
+  if (e.type==='coach') {
+    ctx.fillStyle='rgba(0,0,0,0.65)';
+    const nw=ctx.measureText(e.name).width+10;
+    ctx.font='bold 10px Nunito,sans-serif';
+    roundRect(ctx, x+14-nw/2, y-18, nw, 14, 4); ctx.fill();
+    ctx.fillStyle='#f1c40f'; ctx.textAlign='center'; ctx.fillText(e.name, x+14, y-7);
+  }
+}
+
+// ─── RENDER ──────────────────────────────────────────────
+function render() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Position & show/hide YouTube billboards
+  const bbConfig = [
+    { id:'bb-pickle', wx:275, wy:42 },
+    { id:'bb-bball', wx:1380, wy:50 },
+    { id:'bb-soccer', wx:1810, wy:50 },
+    { id:'bb-lacrosse', wx:630, wy:718 },
+    { id:'bb-fhockey', wx:1810, wy:715 },
+  ];
+  const inGame = ['PICKLEBALL','BASKETBALL','SOCCER','LACROSSE','FIELDHOCKEY','MODAL'].includes(gameState);
+  bbConfig.forEach(({id,wx,wy})=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const sx=wx-camera.x, sy=wy-camera.y;
+    const visible = !inGame && sx>-260&&sx<820&&sy>-200&&sy<620;
+    el.style.opacity = visible?'1':'0';
+    el.style.pointerEvents = visible?'auto':'none';
+    el.style.transform = `translate(${sx}px,${sy}px)`;
+  });
+
+  document.getElementById('cursor-ui').style.display = inGame?'none':'flex';
+
+  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL') {
+    drawWorld();
+    // Prompt
+    if (activePrompt && gameState==='PLAY') {
+      const pw=Math.min(ctx.measureText(activePrompt).width+40,580);
+      ctx.fillStyle='rgba(0,0,0,0.85)';
+      roundRect(ctx,400-pw/2,520,pw,36,18); ctx.fill();
+      ctx.fillStyle='#f1c40f'; ctx.font='bold 15px Nunito,sans-serif';
+      ctx.textAlign='center'; ctx.fillText(activePrompt,400,543);
+    }
+    // NPC proximity hint
+    if (!activePrompt && gameState==='PLAY' && npcs.some(n=>Math.hypot(player.x-n.x,player.y-n.y)<55)) {
+      ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx,250,520,300,36,18); ctx.fill();
+      ctx.fillStyle='white'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Press SPACE to chat',400,543);
+    }
+    // Dialogue box
+    if (gameState==='DIALOGUE' && activeNPC) {
+      ctx.fillStyle='rgba(0,0,0,0.88)'; roundRect(ctx,40,448,720,130,12); ctx.fill();
+      ctx.fillStyle=activeNPC.cap; ctx.fillRect(40,448,8,130);
+      ctx.fillStyle=activeNPC.cap; ctx.font='bold 19px Black Han Sans,sans-serif'; ctx.textAlign='left';
+      ctx.fillText(activeNPC.name,60,476);
+      ctx.fillStyle='white'; ctx.font='17px Nunito,sans-serif';
+      ctx.fillText(curDlg[dlgIdx],60,510);
+      ctx.font='13px Nunito,sans-serif'; ctx.fillStyle='#bdc3c7';
+      ctx.fillText(`${dlgIdx+1}/${curDlg.length} — Press SPACE to continue`,490,562);
+    }
+
+  } else if (gameState==='PICKLEBALL') {
+    drawPickleMinigame();
+  } else if (gameState==='BASKETBALL') {
+    drawBballMinigame();
+  } else if (gameState==='SOCCER') {
+    drawSoccerMinigame();
+  } else if (gameState==='LACROSSE') {
+    drawLaxMinigame();
+  } else if (gameState==='FIELDHOCKEY') {
+    drawFHMinigame();
+  }
+}
+
+// ── DRAW PICKLEBALL MINIGAME ──────────────────────────────
+function drawPickleMinigame() {
+  ctx.fillStyle='#2980b9'; ctx.fillRect(0,0,800,600);
+  // Net
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(0,295,800,10);
+  // Court lines
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2; ctx.strokeRect(0,0,800,600);
+  const mg=mgPickle;
+  // Paddle
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=8;
+  ctx.fillStyle=mg.paddle.color;
+  roundRect(ctx,mg.paddle.x,mg.paddle.y,mg.paddle.w,mg.paddle.h,6); ctx.fill();
+  ctx.restore();
+  // Ball
+  ctx.save(); ctx.shadowColor=mg.ball.color; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.arc(mg.ball.x,mg.ball.y,mg.ball.r,0,Math.PI*2);
+  ctx.fillStyle=mg.ball.color; ctx.fill();
+  ctx.restore();
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,10,10,200,70,10); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 16px Nunito,sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`Volleys: ${mg.score}`,22,35);
+  ctx.fillStyle='#f1c40f'; ctx.fillText(`Best: ${mg.best}`,22,58);
+  // Color picker
+  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,canvas.height-65,canvas.width,65);
+  ctx.fillStyle='white'; ctx.font='bold 14px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Pick Your Ball:',400,canvas.height-44);
+  const sx=400-mg.colors.length*28;
+  mg.colors.forEach((c,i)=>{
+    const bx=sx+i*56+28, by=canvas.height-20;
+    ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();
+    if(mg.ball.color===c){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(bx,by,18,0,Math.PI*2);ctx.strokeStyle='#f1c40f';ctx.stroke();}
+  });
+  drawMinigameHUDBar('PICKLEBALL VOLLEY','ESC to exit');
+}
+
+// ── DRAW BASKETBALL MINIGAME ──────────────────────────────
+function drawBballMinigame() {
+  // Court
+  ctx.fillStyle='#c8832c'; ctx.fillRect(0,0,800,600);
+  for(let i=0;i<800;i+=22){ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,600);ctx.stroke();}
+  // Backboard & hoop
+  const mg=mgBball;
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fillRect(718,180,16,80);
+  ctx.strokeStyle='#e74c3c'; ctx.lineWidth=3; ctx.strokeRect(720,196,12,45);
+  ctx.beginPath();ctx.arc(mg.hoopX,mg.hoopY,mg.hoopR,0,Math.PI*2);ctx.strokeStyle='#e74c3c';ctx.lineWidth=4;ctx.stroke();
+  // Net
+  ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=1;
+  for(let i=0;i<8;i++){ctx.beginPath();ctx.moveTo(mg.hoopX-mg.hoopR+i*mg.hoopR/3.5,mg.hoopY);ctx.lineTo(mg.hoopX-mg.hoopR/2+i*mg.hoopR/3.5,mg.hoopY+40);ctx.stroke();}
+  ctx.beginPath();ctx.moveTo(mg.hoopX-mg.hoopR,mg.hoopY+20);ctx.lineTo(mg.hoopX+mg.hoopR,mg.hoopY+20);ctx.stroke();
+  // Player character
+  ctx.fillStyle='#e74c3c'; ctx.fillRect(122,374,24,28);
+  ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(134,368,12,0,Math.PI*2); ctx.fill();
+  // Aim line (dashed)
+  if (!mg.ball.active && !mg.done) {
+    const angle=Math.atan2(mouseY-mg.ball.y,mouseX-mg.ball.x);
+    ctx.save(); ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2; ctx.setLineDash([8,6]);
+    ctx.beginPath(); ctx.moveTo(mg.ball.x,mg.ball.y);
+    ctx.lineTo(mg.ball.x+Math.cos(angle)*150, mg.ball.y+Math.sin(angle)*150);
+    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  }
+  // Ball
+  if (!mg.ball.active) {
+    ctx.save(); ctx.shadowColor='#e67e22'; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.arc(mg.ball.x,mg.ball.y,mg.ball.r,0,Math.PI*2);
+    ctx.fillStyle='#e67e22'; ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.shadowColor='#e67e22'; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.arc(mg.ball.x,mg.ball.y,mg.ball.r,0,Math.PI*2);
+    ctx.fillStyle='#e67e22'; ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+  }
+  // Power bar
+  if (mg.powerCharging) {
+    ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,30,540,200,22,6); ctx.fill();
+    const pc=mg.power/100;
+    ctx.fillStyle=`hsl(${120-pc*120},100%,50%)`; roundRect(ctx,32,542,196*pc,18,4); ctx.fill();
+    ctx.fillStyle='white'; ctx.font='bold 12px Nunito,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('HOLD TO CHARGE',130,555);
+  }
+  // Shot result flash
+  if (mg.shotResult) {
+    ctx.fillStyle=mg.shotResult.includes('NICE')?'#2ecc71':'#e74c3c';
+    ctx.font='bold 40px Black Han Sans,sans-serif'; ctx.textAlign='center';
+    ctx.globalAlpha=0.85; ctx.fillText(mg.shotResult,400,300); ctx.globalAlpha=1;
+  }
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,10,10,260,80,10); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 17px Nunito,sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`🏀 Score: ${mg.score} / ${mg.shots}`,22,38);
+  ctx.fillStyle='#bdc3c7'; ctx.font='14px Nunito,sans-serif';
+  ctx.fillText(`Shots remaining: ${mg.maxShots-mg.shots}`,22,60);
+  ctx.fillStyle='#f1c40f'; ctx.fillText('Hold + Release mouse to shoot',22,78);
+  if (mg.done) drawGameOver(`BASKETS: ${mg.score} / ${mg.maxShots}`, '#d35400');
+  drawMinigameHUDBar('FREE THROW CHALLENGE','ESC to exit');
+}
+
+// ── DRAW SOCCER MINIGAME ──────────────────────────────────
+function drawSoccerMinigame() {
+  // Pitch
+  const g=ctx.createLinearGradient(0,0,0,600);
+  g.addColorStop(0,'#2e7d32'); g.addColorStop(1,'#1b5e20');
+  ctx.fillStyle=g; ctx.fillRect(0,0,800,600);
+  for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.05:0})`;ctx.fillRect(i*100,0,100,600);}
+  const mg=mgSoccer;
+  // Goal
+  ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(mg.goalX1,mg.goalY,mg.goalX2-mg.goalX1,mg.goalH);
+  ctx.strokeStyle='white'; ctx.lineWidth=4; ctx.strokeRect(mg.goalX1,mg.goalY,mg.goalX2-mg.goalX1,mg.goalH);
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  for(let gx=mg.goalX1;gx<mg.goalX2;gx+=20)for(let gy=mg.goalY;gy<mg.goalY+mg.goalH;gy+=20){ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=0.5;ctx.strokeRect(gx,gy,20,20);}
+  // Keeper
+  ctx.fillStyle='#f39c12';
+  ctx.fillRect(mg.keepX,mg.goalY+10,90,mg.goalH-20);
+  ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(mg.keepX+45,mg.goalY+2,14,0,Math.PI*2); ctx.fill();
+  // Aim crosshair (only if not kicked)
+  if (!mg.kicked) {
+    const ax=mg.aimX, ay=mg.aimY;
+    ctx.strokeStyle='rgba(255,255,0,0.7)'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(ax-20,ay); ctx.lineTo(ax+20,ay); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax,ay-20); ctx.lineTo(ax,ay+20); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ax,ay,12,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    // Line from ball to aim
+    ctx.strokeStyle='rgba(255,255,0,0.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mg.ballX,mg.ballY); ctx.lineTo(ax,ay); ctx.stroke();
+  }
+  // Ball
+  ctx.save(); ctx.shadowColor='white'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(mg.ballX,mg.ballY,14,0,Math.PI*2);
+  ctx.fillStyle='white'; ctx.fill(); ctx.strokeStyle='#333'; ctx.lineWidth=2; ctx.stroke();
+  // Soccer ball pattern
+  ctx.fillStyle='#333';
+  [[0,-8],[6,5],[-6,5]].forEach(([dx,dy])=>{ctx.beginPath();ctx.arc(mg.ballX+dx,mg.ballY+dy,4,0,Math.PI*2);ctx.fill();});
+  ctx.restore();
+  // Result flash
+  if (mg.result) {
+    ctx.fillStyle=mg.result.includes('GOAL')?'#2ecc71':'#e74c3c';
+    ctx.font='bold 52px Black Han Sans,sans-serif'; ctx.textAlign='center';
+    ctx.globalAlpha=0.9; ctx.fillText(mg.result,400,320); ctx.globalAlpha=1;
+  }
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,10,500,260,80,10); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 17px Nunito,sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`⚽ Goals: ${mg.score}`,22,525);
+  ctx.fillStyle='#bdc3c7'; ctx.font='14px Nunito,sans-serif';
+  ctx.fillText(`Shots: ${mg.shots} / ${mg.maxShots}`,22,548);
+  ctx.fillStyle='#f1c40f'; ctx.fillText('Click to shoot!',22,568);
+  if (mg.done) drawGameOver(`GOALS: ${mg.score} / ${mg.maxShots}`, '#27ae60');
+  drawMinigameHUDBar('PENALTY SHOOTOUT','ESC to exit');
+}
+
+// ── DRAW LACROSSE MINIGAME ────────────────────────────────
+function drawLaxMinigame() {
+  const g=ctx.createLinearGradient(0,0,0,600);
+  g.addColorStop(0,'#1abc9c'); g.addColorStop(1,'#16a085');
+  ctx.fillStyle=g; ctx.fillRect(0,0,800,600);
+  for(let i=0;i<16;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.05:0})`;ctx.fillRect(0,i*40,800,40);}
+  const mg=mgLax;
+  // Catch zone hint
+  ctx.fillStyle='rgba(255,255,255,0.07)'; roundRect(ctx,mg.stick.x,mg.stick.y-60,mg.stick.w,70,4); ctx.fill();
+  // Lacrosse stick
+  ctx.fillStyle='#8B4513'; ctx.fillRect(mg.stick.x,mg.stick.y,mg.stick.w,8);
+  // Stick head (scoop shape)
+  ctx.fillStyle='#ccc'; roundRect(ctx,mg.stick.x,mg.stick.y-12,mg.stick.w,18,6); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1; ctx.strokeRect(mg.stick.x,mg.stick.y-12,mg.stick.w,18);
+  // Mesh lines in stick
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1;
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(mg.stick.x+i*(mg.stick.w/4),mg.stick.y-12);ctx.lineTo(mg.stick.x+i*(mg.stick.w/4),mg.stick.y+6);ctx.stroke();}
+  // Falling balls
+  mg.balls.forEach(b=>{
+    ctx.save(); ctx.shadowColor=b.color; ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=b.color;ctx.fill();
+    ctx.restore();
+  });
+  // Misses bar
+  ctx.fillStyle='rgba(0,0,0,0.6)'; roundRect(ctx,10,8,180,50,8); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 14px Nunito,sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`Caught: ${mg.score}`,22,30);
+  ctx.fillStyle='#e74c3c'; ctx.fillText(`Misses: ${'❌'.repeat(mg.misses)}${' ☐'.repeat(mg.maxMisses-mg.misses)}`,22,50);
+  ctx.fillStyle='rgba(0,0,0,0.6)'; roundRect(ctx,620,8,170,50,8); ctx.fill();
+  ctx.fillStyle='#f1c40f'; ctx.font='bold 14px Nunito,sans-serif'; ctx.textAlign='right';
+  ctx.fillText(`Best: ${mg.best}`,790,30);
+  ctx.fillStyle='#bdc3c7'; ctx.fillText('Move mouse to catch!',790,50);
+  if (mg.done) drawGameOver(`CAUGHT: ${mg.score}`, '#1abc9c');
+  drawMinigameHUDBar('LACROSSE CATCH DRILL','ESC to exit');
+}
+
+// ── DRAW FIELD HOCKEY MINIGAME ────────────────────────────
+function drawFHMinigame() {
+  const g=ctx.createLinearGradient(0,0,0,600);
+  g.addColorStop(0,'#27ae60'); g.addColorStop(1,'#145a32');
+  ctx.fillStyle=g; ctx.fillRect(0,0,800,600);
+  for(let i=0;i<12;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.06:0})`;ctx.fillRect(0,i*50,800,50);}
+  const mg=mgFH;
+  // Goal
+  ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(mg.goalX1,mg.goalY,mg.goalX2-mg.goalX1,mg.goalH);
+  ctx.strokeStyle='white'; ctx.lineWidth=4; ctx.strokeRect(mg.goalX1,mg.goalY,mg.goalX2-mg.goalX1,mg.goalH);
+  // Striking circle
+  ctx.beginPath(); ctx.arc(400,mg.goalY+mg.goalH,180,-Math.PI,0); ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.setLineDash([8,5]); ctx.stroke(); ctx.setLineDash([]);
+  // Keeper
+  ctx.fillStyle='#2980b9'; ctx.fillRect(mg.keeper.x,mg.goalY+8,mg.keeper.w,mg.goalH-16);
+  ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(mg.keeper.x+40,mg.goalY,14,0,Math.PI*2); ctx.fill();
+  // Aim crosshair
+  if (!mg.shooting) {
+    ctx.strokeStyle='rgba(255,255,0,0.7)'; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(mg.aimX-18,mg.aimY); ctx.lineTo(mg.aimX+18,mg.aimY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(mg.aimX,mg.aimY-18); ctx.lineTo(mg.aimX,mg.aimY+18); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(255,255,0,0.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(mg.puck.x,mg.puck.y); ctx.lineTo(mg.aimX,mg.aimY); ctx.stroke();
+  }
+  // Puck
+  ctx.save(); ctx.shadowColor='white'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(mg.puck.x,mg.puck.y,mg.puck.r,0,Math.PI*2);
+  ctx.fillStyle='#222'; ctx.fill(); ctx.strokeStyle='#aaa'; ctx.lineWidth=2; ctx.stroke();
+  ctx.restore();
+  // Hockey stick visual
+  if (!mg.shooting) {
+    ctx.strokeStyle='#8B4513'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(mouseX,mouseY); ctx.lineTo(mg.puck.x,mg.puck.y); ctx.stroke();
+    ctx.strokeStyle='#a0522d'; ctx.lineWidth=8;
+    ctx.beginPath(); ctx.moveTo(mg.puck.x-14,mg.puck.y+10); ctx.lineTo(mg.puck.x+14,mg.puck.y+10); ctx.stroke();
+  }
+  // Result flash
+  if (mg.result) {
+    ctx.fillStyle=mg.result.includes('GOAL')?'#2ecc71':'#e74c3c';
+    ctx.font='bold 52px Black Han Sans,sans-serif'; ctx.textAlign='center';
+    ctx.globalAlpha=0.9; ctx.fillText(mg.result,400,340); ctx.globalAlpha=1;
+  }
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,10,500,260,80,10); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 17px Nunito,sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`🏑 Goals: ${mg.score}`,22,525);
+  ctx.fillStyle='#bdc3c7'; ctx.font='14px Nunito,sans-serif';
+  ctx.fillText(`Shots: ${mg.shots} / ${mg.maxShots}`,22,548);
+  ctx.fillStyle='#f1c40f'; ctx.fillText('Click to shoot!',22,568);
+  if (mg.done) drawGameOver(`GOALS: ${mg.score} / ${mg.maxShots}`,'#2980b9');
+  drawMinigameHUDBar('FIELD HOCKEY DRAG-FLICK','ESC to exit');
+}
+
+function drawMinigameHUDBar(title, hint) {
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(0,0,800,36);
+  ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 15px Black Han Sans,sans-serif';
+  ctx.textAlign='center'; ctx.fillText(title,400,24);
+  ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='12px Nunito,sans-serif';
+  ctx.textAlign='right'; ctx.fillText(hint,790,24);
+}
+
+function drawGameOver(scoreText, accentColor) {
+  ctx.fillStyle='rgba(0,0,0,0.82)'; ctx.fillRect(0,0,800,600);
+  ctx.fillStyle=accentColor; ctx.font='bold 58px Black Han Sans,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('GAME OVER',400,240);
+  ctx.fillStyle='white'; ctx.font='bold 28px Nunito,sans-serif';
+  ctx.fillText(scoreText,400,295);
+  ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='18px Nunito,sans-serif';
+  ctx.fillText('Press ESC to return to the world',400,340);
+  const t=globalTick*0.05, pulse=Math.sin(t)*0.3+0.7;
+  ctx.globalAlpha=pulse;
+  ctx.fillStyle=accentColor; ctx.font='bold 20px Nunito,sans-serif';
+  ctx.fillText('🏆 Try again for a better score!',400,390);
+  ctx.globalAlpha=1;
+}
+
+// ─── MAIN LOOP ───────────────────────────────────────────
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
