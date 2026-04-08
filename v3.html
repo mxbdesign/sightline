@@ -330,7 +330,7 @@ let globalTick = 0;
 const camera = { x: 0, y: 0 };
 
 // ─── PLAYER ──────────────────────────────────────────────
-const player = { x: 1200, y: 1350, w: 28, h: 28, speed: 5, color: '#e74c3c', facing: 'down', type: 'player' };
+const player = { x: 1200, y: 1350, w: 28, h: 28, speed: 5, color: '#e74c3c', facing: 'down', type: 'player', name: 'You', skills: { PICKLEBALL: 0, BASKETBALL: 0, SOCCER: 0, LACROSSE: 0, FIELDHOCKEY: 0 } };
 
 // ─── INPUT ───────────────────────────────────────────────
 const keys = {};
@@ -359,27 +359,57 @@ canvas.addEventListener('mouseup', e => { mouseHeld = false; handleMouseUp(e); }
 
 // ─── BOTS ────────────────────────────────────────────────
 const bots = [
-  { x:1180,y:1350,w:28,h:28,color:'#3498db',facing:'down',dx:0,dy:0,timer:0,type:'bot' },
-  { x:380,y:350,w:28,h:28,color:'#9b59b6',facing:'left',dx:0,dy:0,timer:0,type:'bot' },
-  { x:2020,y:350,w:28,h:28,color:'#e67e22',facing:'up',dx:0,dy:0,timer:0,type:'bot' },
-  { x:380,y:880,w:28,h:28,color:'#1abc9c',facing:'right',dx:0,dy:0,timer:0,type:'bot' },
-  { x:2020,y:880,w:28,h:28,color:'#2980b9',facing:'up',dx:0,dy:0,timer:0,type:'bot' },
+  { x:1180,y:1350,w:28,h:28,color:'#3498db',facing:'down',dx:0,dy:0,timer:0,type:'bot',name:'Alex' },
+  { x:380,y:350,w:28,h:28,color:'#9b59b6',facing:'left',dx:0,dy:0,timer:0,type:'bot',name:'Jordan' },
+  { x:2020,y:350,w:28,h:28,color:'#e67e22',facing:'up',dx:0,dy:0,timer:0,type:'bot',name:'Taylor' },
+  { x:380,y:880,w:28,h:28,color:'#1abc9c',facing:'right',dx:0,dy:0,timer:0,type:'bot',name:'Casey' },
+  { x:2020,y:880,w:28,h:28,color:'#2980b9',facing:'up',dx:0,dy:0,timer:0,type:'bot',name:'Morgan' },
 ];
 
 // ─── NPCs ────────────────────────────────────────────────
 const npcs = [
-  { x:340,y:200,w:28,h:28,color:'#ecf0f1',name:'Coach Taylah',cap:'#e67e22',facing:'down',
-    dialogue:['Welcome to Pickleball! The kitchen (red zone) is off limits for volleys.','Step onto the blue court and press SPACE to start the volley drill!'] },
-  { x:110,y:370,w:28,h:28,color:'#ecf0f1',name:'Coach Shirley',cap:'#9b59b6',facing:'right',
-    dialogue:['Have you joined the Brisbane Pickleball Club?','Check the red board to your left for sign-ups!'] },
-  { x:1160,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach MJ',cap:'#d35400',facing:'down',
-    dialogue:['Welcome to the Hardwood! Basketball is 80% mental, 20% physical.','Head to centre court and press SPACE to take your free throws!'] },
-  { x:1960,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach Mia',cap:'#27ae60',facing:'down',
-    dialogue:['Olá! The beautiful game awaits.','Step onto the pitch and press SPACE for a penalty shootout!'] },
-  { x:390,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Paul',cap:'#1abc9c',facing:'right',
-    dialogue:['Lacrosse — fastest sport on two feet!','Attackers cannot enter the circular crease. Use the catch drill to warm up!'] },
-  { x:1960,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Lexi',cap:'#2980b9',facing:'left',
-    dialogue:['Field Hockey — pure skill and stamina.','You must be inside the striking circle to score. Try the drag-flick drill!'] },
+  { x:340,y:200,w:28,h:28,color:'#ecf0f1',name:'Coach Taylah',cap:'#e67e22',facing:'down', type:'coach', sport:'PICKLEBALL',
+    dialogue:['Welcome to Pickleball! The kitchen (red zone) is off limits for volleys.','Step onto the blue court and press SPACE to start the volley drill!'],
+    quizzes: [
+      { q: 'What is the non-volley zone called?', options: ['The Kitchen', 'The Box', 'The Crease'], answer: 0 },
+      { q: 'Can you volley while standing in the kitchen?', options: ['Yes', 'No', 'Only on serves'], answer: 1 },
+      { q: 'What score is a pickleball game usually played to?', options: ['11', '15', '21'], answer: 0 }
+    ] },
+  { x:110,y:370,w:28,h:28,color:'#ecf0f1',name:'Coach Shirley',cap:'#9b59b6',facing:'right', type:'coach', sport:'PICKLEBALL',
+    dialogue:['Have you joined the Brisbane Pickleball Club?','Check the red board to your left for sign-ups!'],
+    quizzes: [
+      { q: 'Where do you serve from?', options: ['Baseline', 'Kitchen line', 'Sideline'], answer: 0 },
+      { q: 'What happens if a serve hits the net but lands in?', options: ['Fault', 'Let (Re-serve)', 'Play continues'], answer: 1 },
+      { q: 'What must the ball do before you can volley?', options: ['Bounce once on each side', 'Bounce twice', 'Nothing'], answer: 0 }
+    ] },
+  { x:1160,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach MJ',cap:'#d35400',facing:'down', type:'coach', sport:'BASKETBALL',
+    dialogue:['Welcome to the Hardwood! Basketball is 80% mental, 20% physical.','Head to centre court and press SPACE to take your free throws!'],
+    quizzes: [
+      { q: 'How many points is a free throw worth?', options: ['1', '2', '3'], answer: 0 },
+      { q: 'What is a double dribble?', options: ['Dribbling with two hands', 'Dribbling twice', 'Both'], answer: 2 },
+      { q: 'How high is a regulation basketball hoop?', options: ['9 feet', '10 feet', '11 feet'], answer: 1 }
+    ] },
+  { x:1960,y:220,w:28,h:28,color:'#ecf0f1',name:'Coach Mia',cap:'#27ae60',facing:'down', type:'coach', sport:'SOCCER',
+    dialogue:['Olá! The beautiful game awaits.','Step onto the pitch and press SPACE for a penalty shootout!'],
+    quizzes: [
+      { q: 'Can a goalkeeper touch the ball with their hands outside the penalty area?', options: ['Yes', 'No', 'Only on goal kicks'], answer: 1 },
+      { q: 'What happens when a player receives a red card?', options: ['Warning', 'Substituted', 'Ejected'], answer: 2 },
+      { q: 'How long is a standard soccer match?', options: ['60 mins', '90 mins', '120 mins'], answer: 1 }
+    ] },
+  { x:390,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Paul',cap:'#1abc9c',facing:'right', type:'coach', sport:'LACROSSE',
+    dialogue:['Lacrosse — fastest sport on two feet!','Attackers cannot enter the circular crease. Use the catch drill to warm up!'],
+    quizzes: [
+      { q: 'What is the circle around the goal called?', options: ['The Box', 'The Crease', 'The Zone'], answer: 1 },
+      { q: 'How many players are on a men\'s field lacrosse team?', options: ['10', '11', '12'], answer: 0 },
+      { q: 'Can an attacker step in the crease?', options: ['Yes', 'No', 'Only after shooting'], answer: 1 }
+    ] },
+  { x:1960,y:1080,w:28,h:28,color:'#ecf0f1',name:'Coach Lexi',cap:'#2980b9',facing:'left', type:'coach', sport:'FIELDHOCKEY',
+    dialogue:['Field Hockey — pure skill and stamina.','You must be inside the striking circle to score. Try the drag-flick drill!'],
+    quizzes: [
+      { q: 'Which side of the stick can you use?', options: ['Flat side', 'Rounded side', 'Both'], answer: 0 },
+      { q: 'Where must you be to score a goal?', options: ['Inside the striking circle', 'Anywhere', 'Penalty spot'], answer: 0 },
+      { q: 'Can you use your feet to kick the ball?', options: ['Yes', 'No', 'Only the goalie'], answer: 2 }
+    ] },
 ];
 
 // ─── STATIC BILLBOARDS / SIGNS ───────────────────────────
@@ -424,7 +454,13 @@ function handleInteraction() {
     }
     for (const npc of npcs) {
       if (Math.hypot(player.x-npc.x, player.y-npc.y) < 55) {
-        activeNPC = npc; curDlg = npc.dialogue; dlgIdx = 0; gameState = 'DIALOGUE'; return;
+        activeNPC = npc;
+        if (npc.type === 'coach' && player.skills[npc.sport] < npc.quizzes.length) {
+          gameState = 'QUIZ';
+        } else {
+          curDlg = npc.dialogue; dlgIdx = 0; gameState = 'DIALOGUE';
+        }
+        return;
       }
     }
   } else if (gameState === 'DIALOGUE') {
@@ -433,7 +469,33 @@ function handleInteraction() {
   }
 }
 
+let quizFeedback = '';
+
 function handleMouseDown(e) {
+  if (gameState === 'QUIZ') {
+    if (quizFeedback) return; // Prevent clicking while showing feedback
+    const quizIdx = player.skills[activeNPC.sport];
+    const quiz = activeNPC.quizzes[quizIdx];
+    const startY = 300 - (quiz.options.length * 25);
+    for (let i = 0; i < quiz.options.length; i++) {
+      const by = startY + i * 50;
+      if (mouseX > 200 && mouseX < 600 && mouseY > by && mouseY < by + 40) {
+        if (i === quiz.answer) {
+          quizFeedback = 'CORRECT! +1 Skill';
+          setTimeout(() => {
+            player.skills[activeNPC.sport]++;
+            quizFeedback = '';
+            gameState = 'PLAY';
+            activeNPC = null;
+          }, 1500);
+        } else {
+          quizFeedback = 'INCORRECT! Try again.';
+          setTimeout(() => { quizFeedback = ''; }, 1500);
+        }
+      }
+    }
+    return;
+  }
   if (gameState === 'BASKETBALL' && !mgBball.done && !mgBball.ball.active) { mgBball.powerCharging = true; mgBball.power = 0; }
   if (gameState === 'SOCCER' && !mgSoccer.done && !mgSoccer.kicked) { kickSoccer(); }
   if (gameState === 'FIELDHOCKEY' && !mgFH.done && !mgFH.shooting) { shootFH(); }
@@ -590,17 +652,47 @@ function drawWorld() {
   ctx.translate(-camera.x, -camera.y);
 
   ctx.fillStyle=textures.grass; ctx.fillRect(0,0,WW,WH);
-  ctx.fillStyle=textures.pavement; ctx.fillRect(0,455,WW,110); ctx.fillRect(1145,0,110,WH);
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=3; ctx.setLineDash([30,20]);
-  ctx.beginPath(); ctx.moveTo(0,510); ctx.lineTo(WW,510); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(1200,0); ctx.lineTo(1200,WH); ctx.stroke(); ctx.setLineDash([]);
+
+  // Organic Paths connecting areas
+  ctx.strokeStyle = textures.pavement;
+  ctx.lineWidth = 140;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  // Main horizontal path
+  ctx.moveTo(100, 510);
+  ctx.quadraticCurveTo(600, 480, 1200, 510);
+  ctx.quadraticCurveTo(1800, 540, 2300, 510);
+  // Main vertical path
+  ctx.moveTo(1200, 100);
+  ctx.quadraticCurveTo(1230, 800, 1200, 1600);
+  // Diagonal connections
+  ctx.moveTo(1200, 510); ctx.quadraticCurveTo(800, 800, 400, 1000);
+  ctx.moveTo(1200, 510); ctx.quadraticCurveTo(1600, 800, 2000, 1000);
+  ctx.stroke();
+
+  // Draw organic blob zones instead of big rects
+  function drawOrganicZone(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < Math.PI * 2; i += 0.5) {
+      const pR = r + Math.sin(i * 3 + cx) * 30;
+      const pX = cx + Math.cos(i) * pR;
+      const pY = cy + Math.sin(i) * pR;
+      if (i === 0) ctx.moveTo(pX, pY);
+      else ctx.lineTo(pX, pY);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
   ctx.fillStyle='#7f8c8d'; drawCircle(1200,1450,200); ctx.fillStyle='#95a5a6'; drawCircle(1200,1450,140);
   ctx.fillStyle='rgba(255,255,255,0.12)'; drawCircle(1200,1450,80);
   ctx.fillStyle='#2980b9'; drawCircle(1200,1450,30); ctx.fillStyle='rgba(100,200,255,0.6)'; drawCircle(1200,1450,18);
   ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.font='bold 26px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('SPORT PLANET HUB',1200,1460);
   ctx.font='bold 13px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillText('↑ Basketball   Pickleball ←',1200,1490);
 
-  ctx.fillStyle='#3d8b37'; ctx.fillRect(0,0,800,455);
+  drawOrganicZone(400, 227, 400, '#3d8b37');
   for(let i=0;i<800;i+=30) { ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,455); ctx.stroke(); }
   ctx.fillStyle=textures.courtBlue; ctx.fillRect(190,245,430,215); ctx.fillStyle=textures.courtRed; ctx.fillRect(290,245,220,70); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.fillRect(290,315,220,145);
   ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.setLineDash([]); ctx.strokeRect(190,245,430,215);
@@ -612,7 +704,7 @@ function drawWorld() {
   drawBench(680,250,true); drawBench(680,400,true);
   ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='bold 44px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('PICKLEBALL',400,130);
 
-  ctx.fillStyle='#1a1e2e'; ctx.fillRect(800,0,800,455);
+  drawOrganicZone(1200, 227, 400, '#1a1e2e');
   for(let i=0;i<8;i++){ctx.fillStyle=`rgba(255,255,255,${0.02+i*0.005})`;ctx.fillRect(800,i*5,800,5);}
   ctx.fillStyle=textures.wood; ctx.fillRect(940,100,520,310); ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1;
   for(let ln=940;ln<1460;ln+=22){ctx.beginPath();ctx.moveTo(ln,100);ctx.lineTo(ln,410);ctx.stroke();}
@@ -627,7 +719,7 @@ function drawWorld() {
   drawTree(820,30); drawTree(1560,30); drawTree(820,400); drawTree(1560,400); drawBench(950,430,false); drawBench(1400,430,false);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('BASKETBALL',1200,65);
 
-  ctx.fillStyle='#2e7d32'; ctx.fillRect(1600,0,800,455);
+  drawOrganicZone(2000, 227, 400, '#2e7d32');
   for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(1600+i*100,0,100,455);}
   ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(1690,90,620,315);
   ctx.beginPath(); ctx.moveTo(2000,90); ctx.lineTo(2000,405); ctx.stroke(); ctx.beginPath(); ctx.arc(2000,248,55,0,Math.PI*2); ctx.stroke();
@@ -640,7 +732,7 @@ function drawWorld() {
   drawTree(1620,30); drawTree(2360,30); drawTree(1620,400); drawTree(2360,400); drawBench(1710,420,false); drawBench(2200,420,false);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('SOCCER',2000,55);
 
-  ctx.fillStyle='#1abc9c'; ctx.fillRect(0,565,800,1035);
+  drawOrganicZone(400, 1082, 400, '#1abc9c');
   for(let i=0;i<8;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(i*100,565,100,1035);}
   ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(85,715,630,310); ctx.beginPath();ctx.moveTo(400,715);ctx.lineTo(400,1025);ctx.stroke();
   ctx.beginPath();ctx.arc(200,870,50,0,Math.PI*2);ctx.stroke(); ctx.beginPath();ctx.arc(600,870,50,0,Math.PI*2);ctx.stroke();
@@ -650,7 +742,7 @@ function drawWorld() {
   drawTree(30,580); drawTree(740,580); drawTree(30,1050); drawTree(740,1050); drawBench(100,1040,false); drawBench(600,1040,false);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='bold 44px Black Han Sans,sans-serif'; ctx.textAlign='center'; ctx.fillText('LACROSSE',400,660);
 
-  ctx.fillStyle='#27ae60'; ctx.fillRect(1600,565,800,1035);
+  drawOrganicZone(2000, 1082, 400, '#27ae60');
   for(let i=0;i<16;i++){ctx.fillStyle=`rgba(0,0,0,${i%2===0?0.04:0})`;ctx.fillRect(1600,565+i*65,800,65);}
   ctx.strokeStyle='white'; ctx.lineWidth=3; ctx.strokeRect(1690,715,620,310); ctx.beginPath();ctx.moveTo(2000,715);ctx.lineTo(2000,1025);ctx.stroke();
   ctx.beginPath();ctx.arc(1690,870,120,-Math.PI/2,Math.PI/2);ctx.stroke(); ctx.beginPath();ctx.arc(2310,870,120,Math.PI/2,-Math.PI/2);ctx.stroke();
@@ -666,6 +758,13 @@ function drawWorld() {
   zones.filter(z=>z.type==='minigame').forEach(z=>{
     if (gameState!=='PLAY' && gameState!=='DIALOGUE') return;
     drawMinigameIndicator(z);
+  });
+
+  npcs.forEach(n=>{
+    if (gameState!=='PLAY' && gameState!=='DIALOGUE') return;
+    if (player.skills[n.sport] < n.quizzes.length) {
+      drawTaskIndicator(n);
+    }
   });
 
   signs.forEach(s=>{
@@ -686,8 +785,9 @@ function drawBench(x,y,vertical) { ctx.fillStyle='#795548'; if (vertical) { ctx.
 function drawPole(x,y) { ctx.fillStyle='#7f8c8d'; ctx.fillRect(x-3,y,6,40); ctx.fillStyle='#f1c40f'; ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2); const grd=ctx.createRadialGradient(x,y,2,x,y,10); grd.addColorStop(0,'rgba(255,255,200,0.9)'); grd.addColorStop(1,'rgba(255,200,0,0.1)'); ctx.fillStyle=grd; ctx.fill(); ctx.shadowColor='#f1c40f'; ctx.shadowBlur=15; ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill(); ctx.shadowBlur=0; }
 function drawScoreboard(x,y,sport,color) { ctx.fillStyle='rgba(0,0,0,0.7)'; ctx.fillRect(x,y,90,50); ctx.fillStyle=color; ctx.fillRect(x,y,90,18); ctx.fillStyle='white'; ctx.font='bold 9px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText(sport,x+45,y+13); ctx.font='bold 20px Black Han Sans,sans-serif'; ctx.fillStyle='#f1c40f'; ctx.fillText('0 - 0',x+45,y+42); }
 function drawMinigameIndicator(zone) { const cx = zone.x + zone.w/2; const cy = zone.y - 15; const bounce = Math.sin(globalTick * 0.07) * 9; const pulse = 0.7 + Math.sin(globalTick * 0.1) * 0.3; ctx.save(); ctx.globalAlpha = pulse; ctx.shadowColor = zone.color; ctx.shadowBlur = 20; ctx.font = 'bold 15px Nunito,sans-serif'; const label = `⚡ MINIGAME ⚡`; const tw = ctx.measureText(label).width; ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx, cx-tw/2-14, cy-bounce-32, tw+28, 26, 13); ctx.fill(); ctx.fillStyle = zone.color; ctx.textAlign = 'center'; ctx.fillText(label, cx, cy-bounce-13); ctx.shadowBlur=0; ctx.font='bold 11px Nunito,sans-serif'; ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.fillText(zone.label, cx, cy-bounce+4); ctx.fillStyle = zone.color; ctx.font='bold 18px Arial'; ctx.fillText('▼', cx, cy-bounce+22); ctx.globalAlpha = pulse*0.5; ctx.fillText('▼', cx, cy-bounce+36); ctx.globalAlpha = 1; ctx.restore(); }
+function drawTaskIndicator(n) { const cx = n.x + 14; const cy = n.y - 30; const bounce = Math.sin(globalTick * 0.1) * 6; const pulse = 0.8 + Math.sin(globalTick * 0.15) * 0.2; ctx.save(); ctx.globalAlpha = pulse; ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 15; ctx.font = 'bold 12px Nunito,sans-serif'; const label = `NEW TASK`; const tw = ctx.measureText(label).width; ctx.fillStyle='rgba(0,0,0,0.8)'; roundRect(ctx, cx-tw/2-8, cy-bounce-20, tw+16, 20, 10); ctx.fill(); ctx.fillStyle = '#f1c40f'; ctx.textAlign = 'center'; ctx.fillText(label, cx, cy-bounce-6); ctx.font='bold 16px Arial'; ctx.fillText('▼', cx, cy-bounce+12); ctx.restore(); }
 function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
-function drawEntity(e) { const x=e.x, y=e.y; ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x+14,y+26,12,5,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle=e.color; ctx.fillRect(x+5,y+12,18,16); ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(x+14,y+8,9,0,Math.PI*2); ctx.fill(); if (e.type==='coach') { ctx.fillStyle=e.cap; ctx.beginPath(); ctx.arc(x+14,y+7,9,Math.PI,0); ctx.fill(); ctx.fillRect(x+5,y+4,18,4); ctx.fillRect(x+2,y+6,22,3); } if (e.facing!=='up') { ctx.fillStyle='#111'; let ex=e.facing==='left'?7:e.facing==='right'?17:10; let ex2=e.facing==='left'?11:e.facing==='right'?21:16; ctx.fillRect(x+ex,y+6,2,2); ctx.fillRect(x+ex2,y+6,2,2); } if (e.type==='coach') { ctx.fillStyle='rgba(0,0,0,0.65)'; const nw=ctx.measureText(e.name).width+10; ctx.font='bold 10px Nunito,sans-serif'; roundRect(ctx, x+14-nw/2, y-18, nw, 14, 4); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.textAlign='center'; ctx.fillText(e.name, x+14, y-7); } }
+function drawEntity(e) { const x=e.x, y=e.y; ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x+14,y+26,12,5,0,0,Math.PI*2); ctx.fill(); ctx.fillStyle=e.color; ctx.fillRect(x+5,y+12,18,16); ctx.fillStyle='#f0c27d'; ctx.beginPath(); ctx.arc(x+14,y+8,9,0,Math.PI*2); ctx.fill(); if (e.type==='coach') { ctx.fillStyle=e.cap; ctx.beginPath(); ctx.arc(x+14,y+7,9,Math.PI,0); ctx.fill(); ctx.fillRect(x+5,y+4,18,4); ctx.fillRect(x+2,y+6,22,3); ctx.fillStyle='white'; ctx.fillRect(x+20,y+14,8,10); ctx.fillStyle='#e74c3c'; ctx.fillRect(x+20,y+12,8,2); } if (e.facing!=='up') { ctx.fillStyle='#111'; let ex=e.facing==='left'?7:e.facing==='right'?17:10; let ex2=e.facing==='left'?11:e.facing==='right'?21:16; ctx.fillRect(x+ex,y+6,2,2); ctx.fillRect(x+ex2,y+6,2,2); } if (e.name) { ctx.fillStyle='rgba(0,0,0,0.65)'; const nw=ctx.measureText(e.name).width+10; ctx.font='bold 10px Nunito,sans-serif'; roundRect(ctx, x+14-nw/2, y-18, nw, 14, 4); ctx.fill(); ctx.fillStyle=e.type==='coach'?'#f1c40f':'#ecf0f1'; ctx.textAlign='center'; ctx.fillText(e.name, x+14, y-7); } }
 
 // ─── RENDER ──────────────────────────────────────────────
 function render() {
@@ -711,12 +811,102 @@ function render() {
 
   document.getElementById('cursor-ui').style.display = inGame?'none':'flex';
 
-  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT') {
+  if (gameState==='PLAY'||gameState==='DIALOGUE'||gameState==='MODAL'||gameState==='EDIT' || gameState==='QUIZ') {
     drawWorld();
+    if (gameState==='PLAY') { drawSkillsHUD(); }
     if (activePrompt && gameState==='PLAY') { const pw=Math.min(ctx.measureText(activePrompt).width+40,580); ctx.fillStyle='rgba(0,0,0,0.85)'; roundRect(ctx,400-pw/2,520,pw,36,18); ctx.fill(); ctx.fillStyle='#f1c40f'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText(activePrompt,400,543); }
-    if (!activePrompt && gameState==='PLAY' && npcs.some(n=>Math.hypot(player.x-n.x,player.y-n.y)<55)) { ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx,250,520,300,36,18); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText('Press SPACE to chat',400,543); }
+    if (!activePrompt && gameState==='PLAY' && npcs.some(n=>Math.hypot(player.x-n.x,player.y-n.y)<55)) { ctx.fillStyle='rgba(0,0,0,0.75)'; roundRect(ctx,250,520,300,36,18); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 15px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText('Press SPACE to interact',400,543); }
     if (gameState==='DIALOGUE' && activeNPC) { ctx.fillStyle='rgba(0,0,0,0.88)'; roundRect(ctx,40,448,720,130,12); ctx.fill(); ctx.fillStyle=activeNPC.cap; ctx.fillRect(40,448,8,130); ctx.fillStyle=activeNPC.cap; ctx.font='bold 19px Black Han Sans,sans-serif'; ctx.textAlign='left'; ctx.fillText(activeNPC.name,60,476); ctx.fillStyle='white'; ctx.font='17px Nunito,sans-serif'; ctx.fillText(curDlg[dlgIdx],60,510); ctx.font='13px Nunito,sans-serif'; ctx.fillStyle='#bdc3c7'; ctx.fillText(`${dlgIdx+1}/${curDlg.length} — Press SPACE to continue`,490,562); }
+    if (gameState==='QUIZ') { drawQuizUI(); }
   } else if (gameState==='PICKLEBALL') { drawPickleMinigame(); } else if (gameState==='BASKETBALL') { drawBballMinigame(); } else if (gameState==='SOCCER') { drawSoccerMinigame(); } else if (gameState==='LACROSSE') { drawLaxMinigame(); } else if (gameState==='FIELDHOCKEY') { drawFHMinigame(); }
+}
+
+function drawSkillsHUD() {
+  ctx.save();
+  ctx.translate(12, 12);
+  ctx.fillStyle='rgba(0,0,0,0.8)';
+  roundRect(ctx, 0, 0, 180, 150, 8);
+  ctx.fill();
+
+  ctx.fillStyle='#f1c40f';
+  ctx.font='bold 14px Black Han Sans,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('SKILLS PROGRESS', 90, 22);
+
+  const sports = [
+    {id: 'PICKLEBALL', name: 'Pickleball', color: '#3498db'},
+    {id: 'BASKETBALL', name: 'Basketball', color: '#e67e22'},
+    {id: 'SOCCER', name: 'Soccer', color: '#2ecc71'},
+    {id: 'LACROSSE', name: 'Lacrosse', color: '#1abc9c'},
+    {id: 'FIELDHOCKEY', name: 'Field Hockey', color: '#9b59b6'}
+  ];
+
+  ctx.textAlign='left';
+  sports.forEach((s, idx) => {
+    const y = 45 + idx * 20;
+    ctx.fillStyle = s.color;
+    ctx.font = 'bold 11px Nunito,sans-serif';
+    ctx.fillText(s.name, 12, y);
+
+    // Draw 3 circles for skill progress
+    const unlocked = player.skills[s.id];
+    for (let i=0; i<3; i++) {
+      ctx.beginPath();
+      ctx.arc(120 + i*18, y-4, 5, 0, Math.PI*2);
+      if (i < unlocked) {
+        ctx.fillStyle = s.color;
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+  });
+  ctx.restore();
+}
+
+function drawQuizUI() {
+  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const quizIdx = player.skills[activeNPC.sport];
+  const quiz = activeNPC.quizzes[quizIdx];
+  if (!quiz) return; // safeguard for rapid state updates
+
+  ctx.fillStyle=activeNPC.cap; roundRect(ctx, 150, 100, 500, 400, 16); ctx.fill();
+  ctx.fillStyle='#fff'; roundRect(ctx, 154, 104, 492, 392, 12); ctx.fill();
+
+  ctx.fillStyle='#333'; ctx.font='bold 24px Nunito,sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Coach ' + activeNPC.name.replace('Coach ','') + '\'s Quiz', 400, 150);
+
+  ctx.fillStyle='#555'; ctx.font='18px Nunito,sans-serif';
+  // Wrap question text
+  const words = quiz.q.split(' '); let line = ''; let y = 200;
+  for(let n = 0; n < words.length; n++) {
+    const testLine = line + words[n] + ' ';
+    if (ctx.measureText(testLine).width > 450 && n > 0) { ctx.fillText(line, 400, y); line = words[n] + ' '; y += 25; }
+    else { line = testLine; }
+  }
+  ctx.fillText(line, 400, y);
+
+  const startY = 300 - (quiz.options.length * 25);
+  quiz.options.forEach((opt, i) => {
+    const by = startY + i * 50;
+    const isHover = mouseX > 200 && mouseX < 600 && mouseY > by && mouseY < by + 40;
+    ctx.fillStyle = isHover ? '#f1f2f6' : '#fff';
+    ctx.strokeStyle = activeNPC.cap; ctx.lineWidth = 2;
+    roundRect(ctx, 200, by, 400, 40, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#333'; ctx.font = 'bold 16px Nunito,sans-serif';
+    ctx.fillText(opt, 400, by + 26);
+  });
+
+  if (quizFeedback) {
+    ctx.fillStyle = quizFeedback.includes('CORRECT') ? '#2ecc71' : '#e74c3c';
+    ctx.font = 'bold 24px Black Han Sans,sans-serif';
+    ctx.fillText(quizFeedback, 400, 460);
+  } else {
+    ctx.fillStyle = '#95a5a6'; ctx.font = '14px Nunito,sans-serif';
+    ctx.fillText('Click an answer', 400, 460);
+  }
 }
 
 function drawPickleMinigame() { ctx.fillStyle='#2980b9'; ctx.fillRect(0,0,800,600); ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(0,295,800,10); ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2; ctx.strokeRect(0,0,800,600); const mg=mgPickle; ctx.save(); ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=8; ctx.fillStyle=mg.paddle.color; roundRect(ctx,mg.paddle.x,mg.paddle.y,mg.paddle.w,mg.paddle.h,6); ctx.fill(); ctx.restore(); ctx.save(); ctx.shadowColor=mg.ball.color; ctx.shadowBlur=12; ctx.beginPath(); ctx.arc(mg.ball.x,mg.ball.y,mg.ball.r,0,Math.PI*2); ctx.fillStyle=mg.ball.color; ctx.fill(); ctx.restore(); ctx.fillStyle='rgba(0,0,0,0.7)'; roundRect(ctx,10,10,200,70,10); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 16px Nunito,sans-serif'; ctx.textAlign='left'; ctx.fillText(`Volleys: ${mg.score}`,22,35); ctx.fillStyle='#f1c40f'; ctx.fillText(`Best: ${mg.best}`,22,58); ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(0,canvas.height-65,canvas.width,65); ctx.fillStyle='white'; ctx.font='bold 14px Nunito,sans-serif'; ctx.textAlign='center'; ctx.fillText('Pick Your Ball:',400,canvas.height-44); const sx=400-mg.colors.length*28; mg.colors.forEach((c,i)=>{ const bx=sx+i*56+28, by=canvas.height-20; ctx.beginPath();ctx.arc(bx,by,14,0,Math.PI*2);ctx.fillStyle=c;ctx.fill(); if(mg.ball.color===c){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(bx,by,18,0,Math.PI*2);ctx.strokeStyle='#f1c40f';ctx.stroke();} }); drawMinigameHUDBar('PICKLEBALL VOLLEY','ESC to exit'); }
